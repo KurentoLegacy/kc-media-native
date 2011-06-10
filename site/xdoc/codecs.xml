@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+	<properties>
+		<title>Profiles</title>
+		<author email="mparisdiaz@gmail.com">Miguel París Díaz</author>
+	</properties>
+
+	<head>
+
+	</head>
+
+	<body>
+		<section name="Codecs supported">
+			<table>
+				<th>Audio cocecs</th>
+				<th>Supported Sample Rate (Hz)</th>
+				<th>Supported Bit Rate (kbps)</th>
+				
+				<tr>
+					<td>AMR</td>
+					<td>
+						<ul>
+							<li>8000</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>12.2</li>
+						</ul>
+					</td>
+				</tr>
+
+				<tr>
+					<td>MP2</td>
+					<td>
+						<ul>
+							<li>44100</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>64</li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+			
+			
+			
+			<table>
+				<th>Video cocecs</th>
+				
+				<tr>
+					<td>H.263</td>
+				</tr>
+
+				<tr>
+					<td>MPEG-4</td>
+				</tr>
+			</table>
+
+		</section>
+
+	</body>
+
+</document>

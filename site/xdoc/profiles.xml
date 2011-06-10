@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+	<properties>
+		<title>Profiles</title>
+		<author email="mparisdiaz@gmail.com">Miguel París Díaz</author>
+	</properties>
+
+	<head>
+
+	</head>
+
+	<body>
+		<section name="Media profiles">
+			<table>
+				<th>VIDEO PROFILES</th>
+				<tr>
+					<th>Video Codec</th>
+					<th>Frame Size (pix)</th>
+					<th>Frame Rate (fps)</th>
+					<th>Bit Rate (kbps)</th>
+					<th>GOP Size</th>
+					<th>Max B-frames</th>
+				</tr>
+
+				<tr>
+					<td>H.263</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 352x288 (CIF)</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 15</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 384</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 6</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>0 (only I and P frames)</li>
+						</ul>
+					</td>
+				</tr>
+
+
+				<tr>
+					<td>MPEG-4</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 352x288 (CIF)</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 15</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 1500</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>Configurable</li>
+							<li>Default value: 6</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>0 (only I and P frames)</li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+
+		</section>
+
+	</body>
+
+</document>

@@ -1,0 +1,50 @@
+   ------
+   Kurento Android Media
+   ------
+   ------
+   Date
+   ------
+
+Kurento Android Media
+
+* Introduction
+
+	Kurento Android Media is a wrapper in Java of an Android Media Library implemented in C and 
+	based on FFmpeg.
+	
+
+
+* Abstract, simple and usable API
+	
+	
+	
+	
+	
+[./images/kas-media.png] kas-media API
+	
+	
+	
+* Features
+	
+	* Supports AMR and MP2 audio.
+	
+	* Supports H.263 and MP4 video codecs.
+	
+	* Provides RTP transmission and reception capabilities for all supported codecs.
+	RTP stack implementation enables symmetric connection.	
+	
+	* Configurable media profile: Frame rate, bit rate.
+	
+	* Configurable codec profile: Group of pictures. 
+	
+	* Supports CIF video. Media core performs a frame rescale to modify video dimensions 
+	from camera output format to CIF. This release does not support FRAME_SIZE parameter
+	
+	* Video bandwidth is limited depending on active network interface. kas-media allows a
+	maximum bandwidth of 350 kbps for 3G connection and 1500 kbps for WiFi connection.
+		
+	* Jitter adaptation buffer: KAS is designed for minimum latency and this decreases jitter
+	tolerance. A low pass jitter adaptation filter has been implemented to optimize video
+	continuity with minimun latency.
+		
+	
