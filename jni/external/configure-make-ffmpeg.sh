@@ -39,7 +39,10 @@ pushd ffmpeg
 	--enable-libopencore-amrnb \
 	--extra-libs="-lopencore-amrnb " \
 	--extra-cflags="-I$AMR_LIB_INC " \
-	--extra-ldflags="-L$AMR_LIB_LIB "
+	--extra-ldflags="-L$AMR_LIB_LIB " \
+	--extra-cflags="$X264_C_EXTRA " \
+	--extra-ldflags="$X264_LD_EXTRA  " \
+	--extra-libs="$X264_L " $X264_CONFIGURE_OPTS
 
 
 make

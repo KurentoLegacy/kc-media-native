@@ -7,10 +7,12 @@ pushd `dirname $0`
 #TEMPORAL
 export MY_FFMPEG_INSTALL=$PWD/../target/ffmpeg_install
 export MY_AMR_INSTALL=$PWD/../target/opencore-amr_install
+
+export MY_X264_INSTALL=$PWD/../target/x264_install
+export MY_X264_C_INCLUDE=$(MY_X264_INSTALL)/include
+export MY_X264_LDLIB=-L$(MY_X264_INSTALL)/lib -lx264
 #****************************
 
-export AMR_LIB_INC=$MY_AMR_INSTALL/include
-export AMR_LIB_LIB=$MY_AMR_INSTALL/lib
 
 
 
@@ -63,7 +65,36 @@ echo
 echo
 echo "+++++++++++++++++++++++++++++++++++++++++++"
 echo "run configure-make-opencore-amr.sh"
-#./configure-make-opencore-amr.sh || die "configure-make-opencore-amr"
+export AMR_LIB_INC=$MY_AMR_INSTALL/include
+export AMR_LIB_LIB=$MY_AMR_INSTALL/lib
+./configure-make-opencore-amr.sh || die "configure-make-opencore-amr"
+echo
+echo "+++++++++++++++++++++++++++++++++++++++++++"
+echo
+echo
+echo "+++++++++++++++++++++++++++++++++++++++++++"
+echo "run configure-make-opencore-amr.sh"
+
+#export USE_X264_TREE=x264-0.106.1741
+#if [ "" == "$USE_X264_TREE" ]; then
+#  echo "configure a LGPL ffmpeg, without H264 encoding support"
+#  export X264_LIB_INC=;
+#  export X264_LIB_LIB=;
+#  export X264_C_EXTRA=;
+#  export X264_LD_EXTRA=;
+#  export X264_L=;
+#  export X264_CONFIGURE_OPTS='--disable-gpl --disable-libx264';
+#else
+  echo "configure a GPL ffmpeg, with H264 encoding support at $USE_X264_TREE"
+  export X264_LIB_INC=$MY_X264_INSTALL/include;
+  export X264_LIB_LIB=$MY_X264_INSTALL/lib;
+  export X264_C_EXTRA="-I$X264_LIB_INC ";
+  export X264_LD_EXTRA="-L$X264_LIB_LIB -rpath-link=$X264_LIB_LIB ";
+  export X264_L=-lx264;
+  export X264_CONFIGURE_OPTS='--enable-gpl --enable-libx264 --enable-encoder=libx264';
+#fi
+
+./configure-make-x264.sh || die "configure-make-opencore-amr"
 echo
 echo "+++++++++++++++++++++++++++++++++++++++++++"
 echo

@@ -21,10 +21,10 @@ export MY_FFMPEG_INSTALL := $(MY_FFMPEG_SOURCE)
 export MY_AMR_INSTALL := $(NDK_PROJECT_PATH)/jni/target/opencore-amr_install
 
 #ifdef USE_X264_TREE
-#	export MY_X264_INSTALL := $(NDK_PROJECT_PATH)/jni/external/x264
-#	export MY_X264_C_INCLUDE := $(MY_X264_INSTALL)/include
-#	export MY_X264_LDLIB := -L$(MY_X264_INSTALL)/lib -lx264
-#	LOCAL_CFLAGS += -DUSE_X264
+export MY_X264_INSTALL := $(NDK_PROJECT_PATH)/jni/target/x264_install
+export MY_X264_C_INCLUDE := $(MY_X264_INSTALL)/include
+export MY_X264_LDLIB := -L$(MY_X264_INSTALL)/lib -lx264
+LOCAL_CFLAGS += -DUSE_X264
 #endif
 
 
@@ -33,7 +33,7 @@ export MY_AMR_INSTALL := $(NDK_PROJECT_PATH)/jni/target/opencore-amr_install
 
 # ffmpeg uses its own deprecated functions liberally, so turn off that annoying noise
 LOCAL_CFLAGS += -Wall -pedantic -std=c99 -Wno-deprecated-declarations
-LOCAL_LDLIBS += $(FFMPEG_LIBS) -L$(MY_AMR_INSTALL)/lib \
+LOCAL_LDLIBS += $(FFMPEG_LIBS) -L$(MY_AMR_INSTALL)/lib $(MY_X264_LDLIB) \
 		-llog -lc -lm -ldl -lgcc -lz -lopencore-amrnb
 
 LOCAL_C_INCLUDES := 	$(MY_FFMPEG_SOURCE) \
