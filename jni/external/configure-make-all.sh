@@ -6,11 +6,10 @@ pushd `dirname $0`
 
 #TEMPORAL
 export MY_FFMPEG_INSTALL=$PWD/../target/ffmpeg_install
+
 export MY_AMR_INSTALL=$PWD/../target/opencore-amr_install
 
 export MY_X264_INSTALL=$PWD/../target/x264_install
-export MY_X264_C_INCLUDE=$(MY_X264_INSTALL)/include
-export MY_X264_LDLIB=-L$(MY_X264_INSTALL)/lib -lx264
 #****************************
 
 
@@ -24,6 +23,7 @@ export TOOLCHAIN_DIR=$PWD/toolchain
 
 echo "NDK version: $(cat $ANDROID_NDK_HOME/RELEASE.TXT); ABI version: $abi-$gccvers";
 
+#Create toolchain
 #$ANDROID_NDK_HOME/build/tools/make-standalone-toolchain.sh \
 #	--install-dir=$TOOLCHAIN_DIR \
 #	--toolchain=$abi-$gccvers \
@@ -39,16 +39,19 @@ export ARM_INC=$TOOLCHAIN_DIR/include
 export ARM_LIB=$TOOLCHAIN_DIR/lib
 export ARM_LIBO=$TOOLCHAIN_DIR/lib/gcc/$abi/$gccvers
 
+#armarch="-D__ARM_ARCH_7A__ -march=armv7-a "
+armarch="-D__ARM_ARCH_5TE__ -march=armv5te "
 
 export MY_CFLAGS="-I$ARM_INC -DANDROID -fpic -mthumb-interwork -ffunction-sections \
-		-funwind-tables -fstack-protector -fno-short-enums -D__ARM_ARCH_7A__ \
-		-Wno-psabi -march=armv7-a -msoft-float -mthumb -Os -O -fomit-frame-pointer \
+		-funwind-tables -fstack-protector -fno-short-enums $armarch \
+		-Wno-psabi -msoft-float -mthumb -Os -O -fomit-frame-pointer \
 		-fno-strict-aliasing -finline-limit=64 -Wa,--noexecstack -MMD -MP "
 export MY_LDFLAGS="-L$ARM_LIBO -nostdlib -Bdynamic  -Wl,--no-undefined -Wl,-z,noexecstack  \
 		-Wl,-z,nocopyreloc -Wl,-soname,/system/lib/libz.so \
 		-Wl,-rpath-link=$PLATFORM/usr/lib,-dynamic-linker=/system/bin/linker \
 		-L$ARM_LIB  -lc -lm -ldl -Wl,--library-path=$PLATFORM/usr/lib/ \
-		-Xlinker $TOOLCHAIN_DIR/sysroot/usr/lib/crtbegin_dynamic.o -Xlinker $TOOLCHAIN_DIR/sysroot/usr/lib/crtend_android.o "
+		-Xlinker $TOOLCHAIN_DIR/sysroot/usr/lib/crtbegin_dynamic.o -Xlinker \
+		$TOOLCHAIN_DIR/sysroot/usr/lib/crtend_android.o "
 
 
 

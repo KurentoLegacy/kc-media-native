@@ -3,7 +3,7 @@
 pushd `dirname $0`
 pushd opencore-amr
 
-#make clean && make distclean || echo OK
+make clean && make distclean || echo OK
 
 if [ "" == "$MY_AMR_INSTALL" ]; then
   echo "Please set MY_AMR_INSTALL to the location where amr should be installed.";

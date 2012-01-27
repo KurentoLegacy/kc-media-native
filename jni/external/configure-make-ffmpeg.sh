@@ -3,7 +3,7 @@
 pushd `dirname $0`
 pushd ffmpeg
 
-#make clean && make distclean || echo OK
+make clean && make distclean || echo OK
 
 ./configure --prefix=${MY_FFMPEG_INSTALL} \
 	--target-os=linux \
@@ -14,7 +14,6 @@ pushd ffmpeg
 	--nm=$abi-nm \
 	--enable-static \
 	--disable-shared \
-	--enable-armv5te --enable-armv6 --enable-armv6t2 --enable-armvfp \
 	--disable-asm --disable-yasm --enable-neon --enable-pic \
 	--disable-amd3dnow --disable-amd3dnowext --disable-mmx --disable-mmx2 --disable-sse --disable-ssse3 \
 	--enable-version3 \
@@ -46,7 +45,7 @@ pushd ffmpeg
 
 
 make
-make install
+#make install
 
 popd; popd
 
