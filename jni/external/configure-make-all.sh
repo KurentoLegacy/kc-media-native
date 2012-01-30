@@ -1,20 +1,14 @@
 #!/bin/bash
 
-echo "RUN configure-make-all.sh"
+echo "run configure-make-all.sh"
+
+# ensure ANDROID_NDK_HOME is set
+if [ "" == "$ANDROID_NDK_HOME" ]; then
+  echo "Please set ANDROID_NDK_HOME to your Android Native Development Kit path.";
+  exit -1;
+fi
 
 pushd `dirname $0`
-
-#TEMPORAL
-export MY_FFMPEG_INSTALL=$PWD/../target/ffmpeg_install
-
-export MY_AMR_INSTALL=$PWD/../target/opencore-amr_install
-
-export MY_X264_INSTALL=$PWD/../target/x264_install
-#****************************
-
-
-
-
 
 export armelf=armelf_linux_eabi.x;
 export abi=arm-linux-androideabi;
@@ -46,7 +40,7 @@ export MY_CFLAGS="-I$ARM_INC -DANDROID -fpic -mthumb-interwork -ffunction-sectio
 		-funwind-tables -fstack-protector -fno-short-enums $armarch \
 		-Wno-psabi -msoft-float -mthumb -Os -O -fomit-frame-pointer \
 		-fno-strict-aliasing -finline-limit=64 -Wa,--noexecstack -MMD -MP "
-export MY_LDFLAGS="-L$ARM_LIBO -nostdlib -Bdynamic  -Wl,--no-undefined -Wl,-z,noexecstack  \
+export MY_LDFLAGS="-L$ARM_LIBO -nostdlib -Bdynamic  -Wl,--no-undefined -Wl,-z,noexecstack \
 		-Wl,-z,nocopyreloc -Wl,-soname,/system/lib/libz.so \
 		-Wl,-rpath-link=$PLATFORM/usr/lib,-dynamic-linker=/system/bin/linker \
 		-L$ARM_LIB  -lc -lm -ldl -Wl,--library-path=$PLATFORM/usr/lib/ \
@@ -54,64 +48,51 @@ export MY_LDFLAGS="-L$ARM_LIBO -nostdlib -Bdynamic  -Wl,--no-undefined -Wl,-z,no
 		$TOOLCHAIN_DIR/sysroot/usr/lib/crtend_android.o "
 
 
-
-
-
-
 function die {
   echo "$1 failed" && exit -1
 }
 
-#  ./configure-make-x264.sh || die "configure-make-x264"
-
-echo
-echo
 echo "+++++++++++++++++++++++++++++++++++++++++++"
 echo "run configure-make-opencore-amr.sh"
-export AMR_LIB_INC=$MY_AMR_INSTALL/include
-export AMR_LIB_LIB=$MY_AMR_INSTALL/lib
+AMR_LIB_INC=$MY_AMR_INSTALL/include;
+AMR_LIB_LIB=$MY_AMR_INSTALL/lib;
+export AMR_C_EXTRA="-I$AMR_LIB_INC "
+export AMR_LD_EXTRA="-L$AMR_LIB_LIB "
+export AMR_L="-lopencore-amrnb"
+export AMR_CONFIGURE_OPTS="--enable-libopencore-amrnb --enable-encoder=libopencore_amrnb";
 ./configure-make-opencore-amr.sh || die "configure-make-opencore-amr"
-echo
 echo "+++++++++++++++++++++++++++++++++++++++++++"
-echo
-echo
-echo "+++++++++++++++++++++++++++++++++++++++++++"
-echo "run configure-make-opencore-amr.sh"
 
-#export USE_X264_TREE=x264-0.106.1741
-#if [ "" == "$USE_X264_TREE" ]; then
-#  echo "configure a LGPL ffmpeg, without H264 encoding support"
-#  export X264_LIB_INC=;
-#  export X264_LIB_LIB=;
-#  export X264_C_EXTRA=;
-#  export X264_LD_EXTRA=;
-#  export X264_L=;
-#  export X264_CONFIGURE_OPTS='--disable-gpl --disable-libx264';
-#else
+echo
+echo
+
+echo "+++++++++++++++++++++++++++++++++++++++++++"
+echo "run configure-make-x264.sh"
+if [ "" == "$ENABLE_X264" ]; then
+  echo "configure a LGPL ffmpeg, without H264 encoding support"
+  export X264_C_EXTRA=;
+  export X264_LD_EXTRA=;
+  export X264_L=;
+  export X264_CONFIGURE_OPTS='--disable-gpl --disable-libx264';
+else
   echo "configure a GPL ffmpeg, with H264 encoding support at $USE_X264_TREE"
-  export X264_LIB_INC=$MY_X264_INSTALL/include;
-  export X264_LIB_LIB=$MY_X264_INSTALL/lib;
+  X264_LIB_INC=$MY_X264_INSTALL/include;
+  X264_LIB_LIB=$MY_X264_INSTALL/lib;
   export X264_C_EXTRA="-I$X264_LIB_INC ";
   export X264_LD_EXTRA="-L$X264_LIB_LIB -rpath-link=$X264_LIB_LIB ";
-  export X264_L=-lx264;
+  export X264_L="-lx264";
   export X264_CONFIGURE_OPTS='--enable-gpl --enable-libx264 --enable-encoder=libx264';
-#fi
-
-./configure-make-x264.sh || die "configure-make-opencore-amr"
-echo
+  ./configure-make-x264.sh || die "configure-make-x264"
+fi
 echo "+++++++++++++++++++++++++++++++++++++++++++"
+
 echo
 echo
-echo
-echo
+
 echo "+++++++++++++++++++++++++++++++++++++++++++"
 echo "run configure-make-ffmpeg.sh"
 ./configure-make-ffmpeg.sh || die "configure-make-ffmpeg"
-echo
 echo "+++++++++++++++++++++++++++++++++++++++++++"
-echo
-echo
-
 
 popd
 

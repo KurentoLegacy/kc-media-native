@@ -30,18 +30,12 @@ make clean && make distclean || echo OK
 	--disable-encoders \
 	--enable-encoder=h263p --enable-encoder=mpeg4 \
 	--enable-encoder=mp2 --enable-encoder=aac --enable-encoder=pcm_mulaw --enable-encoder=pcm_alaw \
-	--extra-cflags="$MY_CFLAGS " \
+	--extra-cflags="$MY_CFLAGS $AMR_C_EXTRA $X264_C_EXTRA " \
 	--extra-ldflags="$MY_LDFLAGS -Wl,-T,$TOOLCHAIN_DIR/arm-linux-androideabi/lib/ldscripts/$armelf \
-			$TOOLCHAIN_DIR/lib/gcc/$abi/$gccvers/crtbegin.o $ARM_LIBO/crtend.o " \
-	--extra-libs="-lgcc " \
-	--enable-encoder=libopencore_amrnb \
-	--enable-libopencore-amrnb \
-	--extra-libs="-lopencore-amrnb " \
-	--extra-cflags="-I$AMR_LIB_INC " \
-	--extra-ldflags="-L$AMR_LIB_LIB " \
-	--extra-cflags="$X264_C_EXTRA " \
-	--extra-ldflags="$X264_LD_EXTRA  " \
-	--extra-libs="$X264_L " $X264_CONFIGURE_OPTS
+			$TOOLCHAIN_DIR/lib/gcc/$abi/$gccvers/crtbegin.o $ARM_LIBO/crtend.o \
+			$AMR_LD_EXTRA $X264_LD_EXTRA " \
+	--extra-libs="-lgcc $AMR_L $X264_L " \
+	$AMR_CONFIGURE_OPTS $X264_CONFIGURE_OPTS
 
 
 make
