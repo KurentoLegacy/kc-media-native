@@ -1,7 +1,7 @@
 #!/bin/bash
 
 pushd `dirname $0`
-pushd ffmpeg
+pushd $EXTERNAL/ffmpeg
 
 make clean && make distclean || echo OK
 
@@ -36,7 +36,6 @@ make clean && make distclean || echo OK
 			$AMR_LD_EXTRA $X264_LD_EXTRA " \
 	--extra-libs="-lgcc $AMR_L $X264_L " \
 	$AMR_CONFIGURE_OPTS $X264_CONFIGURE_OPTS
-
 
 make
 #make install

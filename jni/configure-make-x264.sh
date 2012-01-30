@@ -1,7 +1,7 @@
 #!/bin/bash
 
 pushd `dirname $0`
-pushd x264
+pushd $EXTERNAL/x264
 
 make distclean || echo OK
 

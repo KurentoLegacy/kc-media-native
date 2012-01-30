@@ -1,7 +1,7 @@
 #!/bin/bash
 
 pushd `dirname $0`
-pushd opencore-amr
+pushd $EXTERNAL/opencore-amr
 
 make clean && make distclean || echo OK
 
