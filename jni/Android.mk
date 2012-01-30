@@ -15,9 +15,10 @@ ifdef ENABLE_X264
 	LOCAL_CFLAGS += -DUSE_X264
 endif
 
-
-#$(shell ./external/configure-make-all.sh)
-
+RESULT := $(shell export MY_FFMPEG_INSTALL=$(MY_FFMPEG_INSTALL); \
+		export MY_AMR_INSTALL=$(MY_AMR_INSTALL); \
+		export MY_X264_INSTALL=$(MY_X264_INSTALL); \
+		./external/configure-make-all.sh)
 
 # These need to be in the right order
 FFMPEG_LIBS := $(addprefix $(MY_FFMPEG_SOURCE)/, \
