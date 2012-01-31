@@ -184,6 +184,9 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 		goto end;
 	}
 
+i = 0;
+int n_packet = 0;
+
 	//READING THE DATA
 	for(;;) {
 		pthread_mutex_lock(&mutex);
@@ -197,14 +200,19 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 			avpkt_data_init = avpkt.data;
 			//Is this a avpkt from the audio stream?
 			if (avpkt.stream_index == audioStream) {
-	/*
-	snprintf(buf, sizeof(buf), "avpkt->pts: %d", avpkt.pts);
-	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "avpkt->dts: %d", avpkt.dts);
-	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
-	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	*/
+snprintf(buf, sizeof(buf), "%d -------------------", n_packet++);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+snprintf(buf, sizeof(buf), "avpkt->pts: %lld", avpkt.pts);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+snprintf(buf, sizeof(buf), "avpkt->dts: %lld", avpkt.dts);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+snprintf(buf, sizeof(buf), "dts/size: %lld", avpkt.dts / avpkt.size);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+snprintf(buf, sizeof(buf), "time: %lld s", avpkt.dts / pDecodecCtxAudio->sample_rate);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+
 				while (avpkt.size > 0) {
 					//Decode audio frame
 					out_size = DATA_SIZE;
@@ -223,18 +231,21 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 						(*env)->DeleteLocalRef(env, out_buffer_audio);
 						out_buffer_audio = (jbyteArray)(*env)->NewByteArray(env, out_size);
 						(*env)->SetByteArrayRegion(env, out_buffer_audio, 0, out_size, (jbyte *) outbuf);
+__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "putAudioSamplesRx");
 						(*env)->CallVoidMethod(env, audioPlayer, midAudio, out_buffer_audio, out_size, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
 					avpkt.size -= len;
 					avpkt.data += len;
+					i++;
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
 			avpkt.data = avpkt_data_init;
 			av_free_packet(&avpkt);
 		}
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
 	}
 
 	ret = 0;
