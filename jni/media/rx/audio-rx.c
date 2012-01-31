@@ -177,9 +177,9 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 	//Prepare Call to Method Java.
 	jclass cls = (*env)->GetObjectClass(env, audioPlayer);
 	
-	jmethodID midAudio = (*env)->GetMethodID(env, cls, "putAudioSamplesRx", "([BI)V");
+	jmethodID midAudio = (*env)->GetMethodID(env, cls, "putAudioSamplesRx", "([BII)V");
 	if (midAudio == 0) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "putAudioSamplesRx([BI)V no exist!");
+		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "putAudioSamplesRx([BII)V no exist!");
 		ret = -7;
 		goto end;
 	}
@@ -223,7 +223,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 						(*env)->DeleteLocalRef(env, out_buffer_audio);
 						out_buffer_audio = (jbyteArray)(*env)->NewByteArray(env, out_size);
 						(*env)->SetByteArrayRegion(env, out_buffer_audio, 0, out_size, (jbyte *) outbuf);
-						(*env)->CallVoidMethod(env, audioPlayer, midAudio, out_buffer_audio, out_size);
+						(*env)->CallVoidMethod(env, audioPlayer, midAudio, out_buffer_audio, out_size, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
