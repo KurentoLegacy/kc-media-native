@@ -101,10 +101,8 @@ static int my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap, const 
 		URLContext *urlContext = get_connection_by_local_port(rtsp_st->sdp_port);
 		if (urlContext)
 			rtsp_st->rtp_handle = urlContext;
-		else if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_RDWR) < 0) {
-			err = AVERROR_INVALIDDATA;
+		else if ( (err = ffurl_open(&rtsp_st->rtp_handle, url, AVIO_RDWR)) < 0)
  			goto fail;
-		}
 		if ((err = rtsp_open_transport_ctx(s, rtsp_st)))
 			goto fail;
 	}
