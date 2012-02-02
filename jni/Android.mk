@@ -40,8 +40,9 @@ LOCAL_C_INCLUDES := 	$(MY_FFMPEG_INSTALL) \
 			$(LOCAL_PATH)/media/rx
 
 LOCAL_MODULE := android-media
-LOCAL_SRC_FILES :=	media/my-cmdutils.c media/init-media.c media/socket-manager.c	\
-			media/tx/video-tx.c media/tx/audio-tx.c		\
+LOCAL_SRC_FILES :=	media/utils.c \
+			media/my-cmdutils.c media/init-media.c media/socket-manager.c \
+			media/tx/video-tx.c media/tx/audio-tx.c	 \
 			media/rx/sdp-manager.c media/rx/video-rx.c media/rx/audio-rx.c
 
 include $(BUILD_SHARED_LIBRARY)
