@@ -42,6 +42,9 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int receive = 0;
 static int sws_flags = SWS_BICUBIC;
 
+enum {
+	QUEUE_SIZE = 1, // FIXME: Coupled with VideoRecorderComponent
+};
 
 static int64_t
 timespecDiff(struct timespec *timeA_p, struct timespec *timeB_p)
@@ -74,16 +77,20 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	AVCodecContext *pDecodecCtxVideo = NULL;
 	AVCodec *pDecodecVideo = NULL;
 	AVFrame *pFrame = NULL;
-	AVFrame *pFrameRGB = NULL;
+	//AVFrame *pFrameRGB = NULL;
+	AVFrame* pFramesRGB[QUEUE_SIZE+1];
 	
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
 	
-	jintArray out_buffer_video = NULL;
-	uint8_t *buffer = NULL;
+	//jintArray out_buffer_video = NULL;
+	//uint8_t *buffer = NULL;
+	jintArray out_buffers_video[QUEUE_SIZE+1];
+	uint8_t *buffers[QUEUE_SIZE+1];
 	
-	int i, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
+	int i, j, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
+	int n_frame;
 	
 	struct SwsContext *img_convert_ctx;
 
@@ -177,12 +184,24 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	//STORING THE DATA
 	//Allocate video frame
 	pFrame = avcodec_alloc_frame();
-
+/*
 	//Allocate an AVFrame structure
 	pFrameRGB = avcodec_alloc_frame();
 	if (pFrameRGB == NULL) {
 		ret = -7;
 		goto end;
+	}
+*/
+
+	//Allocate AVFrames structures
+	for (i=0; i<QUEUE_SIZE+1; i++) {
+		pFramesRGB[i] = avcodec_alloc_frame();
+		if (pFramesRGB[i] == NULL) {
+			ret = -7;
+			goto end;
+		}
+		out_buffers_video[i] = NULL;
+		buffers[i] = NULL;
 	}
 
 	//Prepare Call to Method Java.
@@ -225,6 +244,9 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 				while (avpkt.size > 0) {
+					n_frame = i % (QUEUE_SIZE+1);
+snprintf(buf, sizeof(buf), "Use n frame: %d", n_frame);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 clock_gettime(CLOCK_MONOTONIC, &start);
 					//Decode video frame
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
@@ -249,30 +271,30 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 							// Determine required picture size
 							picture_nbytes = avpicture_get_size(PIX_FMT_RGB32, current_width, current_height);
 							if (picture_nbytes > buffer_nbytes) {
+								for (j=0; j<QUEUE_SIZE+1; j++) {
 clock_gettime(CLOCK_MONOTONIC, &t1);
-								buffer = (uint8_t *) av_realloc(buffer, picture_nbytes * sizeof(uint8_t));
-clock_gettime(CLOCK_MONOTONIC, &t2);
-time = timespecDiff(&t2, &t1);
-snprintf(buf, sizeof(buf), "av_realloc size: %d time: %llu ms", picture_nbytes, time);
-__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-
-								if (buffer == NULL) {
-									__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error in alloc buffer.");
-									buffer_nbytes = -1;
-									break;
-								}
-clock_gettime(CLOCK_MONOTONIC, &t1);
-								(*env)->DeleteLocalRef(env, out_buffer_video);
-								out_buffer_video = (jintArray)(*env)->NewIntArray(env, picture_nbytes);
+									(*env)->DeleteLocalRef(env, out_buffers_video[j]);
+									out_buffers_video[j] = (jintArray)(*env)->NewIntArray(env, picture_nbytes);
 clock_gettime(CLOCK_MONOTONIC, &t2);
 time = timespecDiff(&t2, &t1);
 snprintf(buf, sizeof(buf), "Only if needed NewIntArray size: %d time: %llu ms", picture_nbytes, time);
 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+
+clock_gettime(CLOCK_MONOTONIC, &t1);
+									buffers[j] = (*env)->GetIntArrayElements(env, out_buffers_video[j], NULL);
+									(*env)->ReleaseIntArrayElements(env, out_buffers_video[j], (jint*)buffers[j], 0);
+clock_gettime(CLOCK_MONOTONIC, &t2);
+time = timespecDiff(&t2, &t1);
+snprintf(buf, sizeof(buf), "buffer=GetIntArrayElements time: %llu ms", time);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+								}
 								buffer_nbytes = picture_nbytes;
 							}
 							//Assign appropriate parts of buffer to image planes in pFrameRGB
 							//Note that pFrameRGB is an AVFrame, but AVFrame is a superset of AVPicture
-							avpicture_fill((AVPicture*) pFrameRGB, buffer, PIX_FMT_RGB32, current_width, current_height);
+							for (j=0; j<QUEUE_SIZE+1; j++) {
+								avpicture_fill((AVPicture*) pFramesRGB[j], buffers[j], PIX_FMT_RGB32, current_width, current_height);
+							}
 							snprintf(buf, sizeof(buf), "current_width: %d\tcurrent_height: %d\tpicture_nbytes: %d", current_width, current_height, picture_nbytes);
 							__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 						}
@@ -286,35 +308,13 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 							goto end;
 						}
 						sws_scale(img_convert_ctx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0,
-								current_height, ((AVPicture*) pFrameRGB)->data,
-								((AVPicture*) pFrameRGB)->linesize);
+								current_height, ((AVPicture*) pFramesRGB[n_frame])->data,
+								((AVPicture*) pFramesRGB[n_frame])->linesize);
 						sws_freeContext(img_convert_ctx);
-/*clock_gettime(CLOCK_MONOTONIC, &t1);
-						//(*env)->DeleteLocalRef(env, out_buffer_video);
-						//out_buffer_video = (jintArray)(*env)->NewIntArray(env, buffer_nbytes);
-clock_gettime(CLOCK_MONOTONIC, &t2);
-time = timespecDiff(&t2, &t1);
-snprintf(buf, sizeof(buf), "NewIntArray size: %d time: %llu ms", buffer_nbytes, time);
-__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-*/
-/*
-jint *carr;
-jint i, sum = 0;
-carr = (*env)->GetIntArrayElements(env, arr, NULL);
-*/
-
-
-
-clock_gettime(CLOCK_MONOTONIC, &t1);
-						(*env)->SetByteArrayRegion(env, out_buffer_video, 0, buffer_nbytes, (jbyte*)pFrameRGB->data[0]);
-clock_gettime(CLOCK_MONOTONIC, &t2);
-time = timespecDiff(&t2, &t1);
-snprintf(buf, sizeof(buf), "SetByteArrayRegion time: %llu ms", time);
-__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 
 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "putVideoFrameRx");
 clock_gettime(CLOCK_MONOTONIC, &t1);
-						(*env)->CallVoidMethod(env, videoPlayer, midVideo, out_buffer_video, current_width, current_height, i);
+						(*env)->CallVoidMethod(env, videoPlayer, midVideo, out_buffers_video[n_frame], current_width, current_height, i);
 clock_gettime(CLOCK_MONOTONIC, &t2);
 time = timespecDiff(&t2, &t1);
 snprintf(buf, sizeof(buf), "putVideoFrameRx time: %llu ms", time);
@@ -342,15 +342,27 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
 	ret = 0;
 
 end:
+snprintf(buf, sizeof(buf), "%d", __LINE__);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 	(*env)->ReleaseStringUTFChars(env, sdp_str, pSdpString);
-	(*env)->DeleteLocalRef(env, out_buffer_video);
 
-	//Free the RGB image
-	av_free(buffer);
-	av_free(pFrameRGB);
 
+	for (j=0; j<QUEUE_SIZE+1; j++) {
+snprintf(buf, sizeof(buf), "%d", __LINE__);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+		(*env)->DeleteLocalRef(env, out_buffers_video[j]);
+		//Free the RGB image
+		//av_free(buffers[j]);
+snprintf(buf, sizeof(buf), "%d", __LINE__);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+		av_free(pFramesRGB[j]);
+	}
+snprintf(buf, sizeof(buf), "%d", __LINE__);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 	//Free the YUV frame
 	av_free(pFrame);
+snprintf(buf, sizeof(buf), "%d", __LINE__);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 	//Close the codec
 	if (pDecodecCtxVideo)
 		avcodec_close(pDecodecCtxVideo);
