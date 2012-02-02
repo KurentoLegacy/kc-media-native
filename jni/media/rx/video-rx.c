@@ -87,11 +87,11 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 
 	int i, j, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
-	int n_frame;
+	int n_packet, n_frame;
 	
 	struct SwsContext *img_convert_ctx;
 
-	struct timespec start, end, t1, t2;
+	struct timespec start, end, t2;
 	uint64_t time;
 	uint64_t total_time = 0;
 
@@ -184,7 +184,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	//Allocate AVFrames structures
 	for (i=0; i<QUEUE_SIZE+1; i++) {
 		decoded_frames[i].pFrameRGB = avcodec_alloc_frame();
-		if (decoded_frames[j].pFrameRGB == NULL) {
+		if (decoded_frames[i].pFrameRGB == NULL) {
 			ret = -7;
 			goto end;
 		}
@@ -208,8 +208,8 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	current_height = -1;
 	buffer_nbytes = -1;
 
-i = 0;
-int n_packet = 0;
+	i = 0;
+	n_packet = 0;
 
 	//READING THE DATA
 	for(;;) {
