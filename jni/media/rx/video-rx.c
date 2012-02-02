@@ -42,9 +42,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int receive = 0;
 static int sws_flags = SWS_BICUBIC;
 
-enum {
-	JINT_SIZE = 4, // size in bytes
-};
 
 enum {
 	QUEUE_SIZE = 1, // FIXME: Coupled with VideoRecorderComponent
@@ -259,7 +256,7 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 							if (picture_nbytes > buffer_nbytes) {
 								for (j=0; j<QUEUE_SIZE+1; j++) {
 									(*env)->DeleteLocalRef(env, decoded_frames[j].out_buffer_video);
-									decoded_frames[j].out_buffer_video = (jintArray)(*env)->NewIntArray(env, picture_nbytes/JINT_SIZE);
+									decoded_frames[j].out_buffer_video = (jintArray)(*env)->NewIntArray(env, picture_nbytes/sizeof(jint));
 									decoded_frames[j].buffer = (*env)->GetIntArrayElements(env, decoded_frames[j].out_buffer_video, NULL);
 									(*env)->ReleaseIntArrayElements(env, decoded_frames[j].out_buffer_video, (jint*)(decoded_frames[j].buffer), 0);
 								}
