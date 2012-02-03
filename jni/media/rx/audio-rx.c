@@ -202,15 +202,15 @@ int n_packet = 0;
 snprintf(buf, sizeof(buf), "%d -------------------", n_packet++);
 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "avpkt->pts: %lld", avpkt.pts);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "avpkt->dts: %lld", avpkt.dts);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "dts/size: %lld", avpkt.dts / avpkt.size);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 snprintf(buf, sizeof(buf), "time: %lld s", avpkt.dts / pDecodecCtxAudio->sample_rate);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 
 				while (avpkt.size > 0) {
 					//Decode audio frame
@@ -230,7 +230,7 @@ __android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
 						(*env)->DeleteLocalRef(env, out_buffer_audio);
 						out_buffer_audio = (jbyteArray)(*env)->NewByteArray(env, out_size);
 						(*env)->SetByteArrayRegion(env, out_buffer_audio, 0, out_size, (jbyte *) outbuf);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "putAudioSamplesRx");
+__android_log_write(ANDROID_LOG_INFO, LOG_TAG, "putAudioSamplesRx");
 						(*env)->CallVoidMethod(env, audioPlayer, midAudio, out_buffer_audio, out_size, i);
 					}
 					pthread_mutex_unlock(&mutex);
