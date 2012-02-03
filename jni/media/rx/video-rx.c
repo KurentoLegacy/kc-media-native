@@ -92,6 +92,12 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	uint64_t time;
 	uint64_t total_time = 0;
 
+	// Init buffers
+	for (i=0; i<QUEUE_SIZE+1; i++) {
+		decoded_frames[i].pFrameRGB = NULL;
+		decoded_frames[i].out_buffer_video = NULL;
+		decoded_frames[i].buffer = NULL;
+	}
 
 	pSdpString = (*env)->GetStringUTFChars(env, sdp_str, NULL);
 	if (pSdpString == NULL) {
@@ -167,7 +173,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 		ret = -5; // Codec not found
 		goto end;
 	}
-	
+
 	// Open video codec
 	if (avcodec_open(pDecodecCtxVideo, pDecodecVideo) < 0) {
 		ret = -6; // Could not open codec
@@ -185,8 +191,6 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 			ret = -7;
 			goto end;
 		}
-		decoded_frames[i].out_buffer_video = NULL;
-		decoded_frames[i].buffer = NULL;
 	}
 
 	//Prepare Call to Method Java.
@@ -308,7 +312,6 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
 
 end:
 	(*env)->ReleaseStringUTFChars(env, sdp_str, pSdpString);
-
 
 	for (j=0; j<QUEUE_SIZE+1; j++) {
 		(*env)->DeleteLocalRef(env, decoded_frames[j].out_buffer_video);
