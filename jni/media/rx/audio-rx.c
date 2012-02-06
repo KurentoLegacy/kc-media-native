@@ -56,7 +56,7 @@ Java_com_kurento_kas_media_rx_MediaRx_stopAudioRx(JNIEnv* env,
 
 jint
 Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
-				jstring sdp_str, jint maxDelay, jobject audioPlayer)
+				jstring sdp, jint maxDelay, jobject audioReceiver)
 {
 	
 	const char *pSdpString = NULL;
@@ -74,7 +74,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 
 	int i, ret, audioStream, out_size, len;
 
-	pSdpString = (*env)->GetStringUTFChars(env, sdp_str, NULL);
+	pSdpString = (*env)->GetStringUTFChars(env, sdp, NULL);
 	if (pSdpString == NULL) {
 		ret = -1; // OutOfMemoryError already thrown
 		goto end;
@@ -174,7 +174,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startAudioRx(JNIEnv* env, jobject thiz,
 	
 	
 	//Prepare Call to Method Java.
-	jclass cls = (*env)->GetObjectClass(env, audioPlayer);
+	jclass cls = (*env)->GetObjectClass(env, audioReceiver);
 	
 	jmethodID midAudio = (*env)->GetMethodID(env, cls, "putAudioSamplesRx", "([BII)V");
 	if (midAudio == 0) {
@@ -231,7 +231,7 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 						out_buffer_audio = (jbyteArray)(*env)->NewByteArray(env, out_size);
 						(*env)->SetByteArrayRegion(env, out_buffer_audio, 0, out_size, (jbyte *) outbuf);
 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "putAudioSamplesRx");
-						(*env)->CallVoidMethod(env, audioPlayer, midAudio, out_buffer_audio, out_size, i);
+						(*env)->CallVoidMethod(env, audioReceiver, midAudio, out_buffer_audio, out_size, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
@@ -250,7 +250,7 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
 	ret = 0;
 
 end:
-	(*env)->ReleaseStringUTFChars(env, sdp_str, pSdpString);
+	(*env)->ReleaseStringUTFChars(env, sdp, pSdpString);
 	(*env)->DeleteLocalRef(env, out_buffer_audio);
 	
 	//Close the codec

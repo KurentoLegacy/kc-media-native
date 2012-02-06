@@ -67,7 +67,7 @@ Java_com_kurento_kas_media_rx_MediaRx_stopVideoRx(JNIEnv* env,
 
 jint
 Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
-				jstring sdp_str, jint maxDelay, jobject videoPlayer)
+				jstring sdp, jint maxDelay, jobject videoReceiver)
 {
 	
 	const char *pSdpString = NULL;
@@ -99,7 +99,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 		decoded_frames[i].buffer = NULL;
 	}
 
-	pSdpString = (*env)->GetStringUTFChars(env, sdp_str, NULL);
+	pSdpString = (*env)->GetStringUTFChars(env, sdp, NULL);
 	if (pSdpString == NULL) {
 		ret = -1; // OutOfMemoryError already thrown
 		goto end;
@@ -194,7 +194,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	}
 
 	//Prepare Call to Method Java.
-	jclass cls = (*env)->GetObjectClass(env, videoPlayer);
+	jclass cls = (*env)->GetObjectClass(env, videoReceiver);
 	
 	jmethodID midVideo = (*env)->GetMethodID(env, cls, "putVideoFrameRx", "([IIII)V");
 	if (midVideo == 0) {
@@ -287,7 +287,7 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 								current_height, ((AVPicture*) decoded_frames[n_frame].pFrameRGB)->data,
 								((AVPicture*) decoded_frames[n_frame].pFrameRGB)->linesize);
 						sws_freeContext(img_convert_ctx);
-						(*env)->CallVoidMethod(env, videoPlayer, midVideo, decoded_frames[n_frame].out_buffer_video, current_width, current_height, i);
+						(*env)->CallVoidMethod(env, videoReceiver, midVideo, decoded_frames[n_frame].out_buffer_video, current_width, current_height, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
@@ -311,7 +311,7 @@ __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
 	ret = 0;
 
 end:
-	(*env)->ReleaseStringUTFChars(env, sdp_str, pSdpString);
+	(*env)->ReleaseStringUTFChars(env, sdp, pSdpString);
 
 	for (j=0; j<QUEUE_SIZE+1; j++) {
 		(*env)->DeleteLocalRef(env, decoded_frames[j].out_buffer_video);
