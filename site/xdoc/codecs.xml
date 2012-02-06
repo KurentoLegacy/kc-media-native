@@ -17,7 +17,7 @@
 				<th>Audio cocecs</th>
 				<th>Supported Sample Rate (Hz)</th>
 				<th>Supported Bit Rate (kbps)</th>
-				
+
 				<tr>
 					<td>AMR</td>
 					<td>
@@ -45,19 +45,48 @@
 						</ul>
 					</td>
 				</tr>
-			</table>
-			
-			
-			
-			<table>
-				<th>Video cocecs</th>
-				
+
 				<tr>
-					<td>H.263</td>
+					<td>PCMU</td>
+					<td>
+						<ul>
+							<li>8000</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>64</li>
+						</ul>
+					</td>
 				</tr>
 
 				<tr>
+					<td>PCMA</td>
+					<td>
+						<ul>
+							<li>8000</li>
+						</ul>
+					</td>
+					<td>
+						<ul>
+							<li>64</li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+
+
+			<table>
+				<th>Video cocecs</th>
+
+				<tr>
+					<td>H.263</td>
+				</tr>
+				<tr>
 					<td>MPEG-4</td>
+				</tr>
+				<tr>
+					<td>H.264</td>
 				</tr>
 			</table>
 
