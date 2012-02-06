@@ -145,8 +145,7 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 	
 	
 	pthread_mutex_lock(&mutex);
-	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Entro en initAudio");	
-	
+
 	pOutFile = (*env)->GetStringUTFChars(env, outfile, NULL);
 	if (pOutFile == NULL) {
     		ret = -1; // OutOfMemoryError already thrown
