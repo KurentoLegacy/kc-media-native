@@ -344,10 +344,8 @@ static void close_audio(AVFormatContext *oc, AVStream *st)
 	av_free(audio_outbuf);
 }
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_finishAudio (JNIEnv* env,
-						jobject thiz)
-{
+int
+finish_audio_tx() {
 	int i;
 	/* write the trailer, if any.  the trailer must be written
 	* before you close the CodecContexts open when you wrote the
