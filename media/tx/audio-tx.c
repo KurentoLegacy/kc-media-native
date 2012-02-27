@@ -131,25 +131,16 @@ static AVStream *add_audio_stream(AVFormatContext *oc, enum CodecID codec_id, in
 	return st;
 }
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
-						jobject thiz,
-						jstring outfile, jint codec_id, jint sample_rate, jint bit_rate, jint payload_type)
-{
+int
+init_audio_tx(const char* outfile, int codec_id,
+			 int sample_rate, int bit_rate, int payload_type) {
 	int ret;
-	
-	const char *pOutFile = NULL;
 	URLContext *urlContext;
-	
-	
+
+
 	pthread_mutex_lock(&mutex);
 
-	pOutFile = (*env)->GetStringUTFChars(env, outfile, NULL);
-	if (pOutFile == NULL) {
-    		ret = -1; // OutOfMemoryError already thrown
-    		goto end;
-    	}
-	if ( (ret= init_media()) != 0) {
+	if ( (ret = init_media()) != 0) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
@@ -161,7 +152,7 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 	sws_opts = sws_getContext(16,16,0, 16,16,0, sws_flags, NULL,NULL,NULL);
 */
 	/* auto detect the output format from the name. default is mp4. */
-	fmt = av_guess_format(NULL, pOutFile, NULL);
+	fmt = av_guess_format(NULL, outfile, NULL);
 	if (!fmt) {
 		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
 		fmt = av_guess_format("rtp", NULL, NULL);
@@ -189,7 +180,7 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 		goto end;
 	}
 	oc->oformat = fmt;
-	snprintf(oc->filename, sizeof(oc->filename), "%s", pOutFile);
+	snprintf(oc->filename, sizeof(oc->filename), "%s", outfile);
 	
 	/* add the audio stream using the default format codecs
 	and initialize the codecs */
@@ -198,7 +189,7 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 	if (fmt->audio_codec != CODEC_ID_NONE) {
 		audio_st = add_audio_stream(oc, fmt->audio_codec, sample_rate, bit_rate);
 	}
-	
+
 	/* set the output parameters (must be done even if no
 	parameters). */
 	if (av_set_parameters(oc, NULL) < 0) {
@@ -206,11 +197,10 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 		ret = -3;
 		goto end;
 	}
-	
-	av_dump_format(oc, 0, pOutFile, 1);
-	
-	
-	
+
+	av_dump_format(oc, 0, outfile, 1);
+
+
 	/* now that all the parameters are set, we can open the
 	audio codec and allocate the necessary encode buffers */
 	if (audio_st) {
@@ -219,29 +209,29 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 			goto end;
 		}
 	}
-	
+
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&oc->pb, pOutFile, URL_WRONLY)) < 0) {
-			snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", pOutFile, AVERROR_NOENT);
+		if ((ret = avio_open(&oc->pb, outfile, URL_WRONLY)) < 0) {
+			snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
 			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
 			goto end;
 		}
 	}
-	
+
 	//Free old URLContext
 	if( (ret=ffurl_close(oc->pb->opaque)) < 0) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}
-	
+
 	urlContext = get_audio_connection(0);
-	if ((ret = rtp_set_remote_url (urlContext, pOutFile)) < 0) {
-		snprintf(buf, sizeof(buf), "Could not open '%s'", pOutFile);
+	if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0) {
+		snprintf(buf, sizeof(buf), "Could not open '%s'", outfile);
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
 		goto end;
 	}
-	
+
 	oc->pb->opaque = urlContext;
 
 	/* write the stream header, if any */
@@ -254,15 +244,12 @@ Java_com_kurento_kas_media_tx_MediaTx_initAudio (JNIEnv* env,
 	snprintf(buf, sizeof(buf), "Frames per packet: %d", rptmc->max_frames_per_packet);
 	//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 
-	(*env)->ReleaseStringUTFChars(env, outfile, pOutFile);
-	
 	if(audio_st->codec->frame_size > 1)
 		frame_size = audio_st->codec->frame_size;
 	else
 		frame_size = sample_rate * DEFAULT_FRAME_SIZE / 1000;
-
 	ret = frame_size;
-	
+
 	snprintf(buf, sizeof(buf), "Audio frame size: %d", frame_size);
 	//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 
