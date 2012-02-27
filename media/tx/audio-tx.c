@@ -291,41 +291,26 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st, int16_t *samples
 	return 0;
 }
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_putAudioSamples (JNIEnv* env,
-						jobject thiz,
-						jshortArray in_buffer, jint in_size)
-{
-	int16_t *samples;
+int
+put_audio_samples(int16_t* samples, int n_samples) {
 	int i, ret, nframes;
-	
-	//FIXME: controlar el tamaño del array pasado y levantar un error si no es correcto.
+
 	pthread_mutex_lock(&mutex);
 	if (!oc) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "No audio initiated.");
 		ret = -1;
 		goto end;
 	}
-	
-	samples = (int16_t*)((*env)->GetShortArrayElements(env, in_buffer, JNI_FALSE));
-	if (samples == NULL) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error in samples (NULL)");
-    		ret = -2;
-		goto end;
-    	}
 
-	nframes = in_size / frame_size;
+	nframes = n_samples / frame_size;
 	for (i=0; i<nframes; i++) {
 		if( (ret=write_audio_frame(oc, audio_st, &samples[i*frame_size])) < 0) {
-			(*env)->ReleaseShortArrayElements(env, in_buffer, samples, 0);
 			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not write audio frame");
 			goto end;
 		}
-	}	
-	
-	(*env)->ReleaseShortArrayElements(env, in_buffer, samples, 0);
+	}
 	ret = 0;
-	
+
 end:
 	pthread_mutex_unlock(&mutex);
 	return ret;
