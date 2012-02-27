@@ -292,7 +292,7 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st, int16_t *samples
 }
 
 int
-put_audio_samples(int16_t* samples, int n_samples) {
+put_audio_samples_tx(int16_t* samples, int n_samples) {
 	int i, ret, nframes;
 
 	pthread_mutex_lock(&mutex);
