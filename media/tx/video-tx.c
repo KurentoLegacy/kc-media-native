@@ -254,14 +254,12 @@ snprintf(buf, sizeof(buf), "max_qdiff: %d", c->max_qdiff);
 }
 
 int
-init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jint frame_rate_den,
-			jint bit_rate, jint gop_size, jint codecId, jint payload_type)
+init_video_tx(const char* outfile, int width, int height, int frame_rate_num, int frame_rate_den,
+			int bit_rate, int gop_size, int codecId, int payload_type)
 {
 	int ret;
-	
-	const char *pOutFile = NULL;
 	URLContext *urlContext;
-	
+
 	pthread_mutex_lock(&mutex);
 
 #ifndef USE_X264
@@ -274,12 +272,6 @@ init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jin
 	}
 #endif
 
-	pOutFile = (*env)->GetStringUTFChars(env, outfile, NULL);
-	if (pOutFile == NULL) {
-    		ret = -1; // OutOfMemoryError already thrown
-    		goto end;
-    	}
-	
 	if ( (ret= init_media()) != 0) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
@@ -292,7 +284,7 @@ init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jin
 	sws_opts = sws_getContext(16,16,0, 16,16,0, sws_flags, NULL,NULL,NULL);a
 */
 	/* auto detect the output format from the name. default is mp4. */
-	fmt = av_guess_format(NULL, pOutFile, NULL);
+	fmt = av_guess_format(NULL, outfile, NULL);
 	if (!fmt) {
 		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
 		fmt = av_guess_format("rtp", NULL, NULL);
@@ -312,12 +304,12 @@ init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jin
 		goto end;
 	}
 	oc->oformat = fmt;
-	snprintf(oc->filename, sizeof(oc->filename), "%s", pOutFile);
-	
+	snprintf(oc->filename, sizeof(oc->filename), "%s", outfile);
+
 	/* add the  video stream using the default format codecs
 	and initialize the codecs */
 	video_st = NULL;
-	
+
 	if (fmt->video_codec != CODEC_ID_NONE) {
 		video_st = add_video_stream(oc, fmt->video_codec, width, height, frame_rate_num, frame_rate_den, bit_rate, gop_size);
 		if(!video_st) {
@@ -334,10 +326,8 @@ init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jin
 		goto end;
 	}
 	
-	av_dump_format(oc, 0, pOutFile, 1);
-	
-	
-	
+	av_dump_format(oc, 0, outfile, 1);
+
 	/* now that all the parameters are set, we can open the
 	video codec and allocate the necessary encode buffers */
 	if (video_st) {
@@ -349,39 +339,36 @@ init_video_tx(jstring outfile, jint width, jint height, jint frame_rate_num, jin
 
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&oc->pb, pOutFile, URL_WRONLY)) < 0) {
-			snprintf(buf, sizeof(buf), "Could not open '%s'", pOutFile);
+		if ((ret = avio_open(&oc->pb, outfile, URL_WRONLY)) < 0) {
+			snprintf(buf, sizeof(buf), "Could not open '%s'", outfile);
 			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
 			goto end;
 		}
 	}
-	
+
 	//Free old URLContext
 	if ( (ret=ffurl_close(oc->pb->opaque)) < 0) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}
-	
+
 	urlContext = get_video_connection(0);
-	if ((ret=rtp_set_remote_url (urlContext, pOutFile)) < 0) {
-		snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", pOutFile, AVERROR_NOENT);
+	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
+		snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
 		goto end;
 	}
-	
+
 	oc->pb->opaque = urlContext;
-	
-	
+
 	/* write the stream header, if any */
 	av_write_header(oc);
 	
 	RTPMuxContext *rptmc = oc->priv_data;
 	rptmc->payload_type = payload_type;
 
-	(*env)->ReleaseStringUTFChars(env, outfile, pOutFile);
-	
 	ret = 0;
-	
+
 end:
 	pthread_mutex_unlock(&mutex);
 	return ret;
