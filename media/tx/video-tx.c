@@ -66,8 +66,6 @@ static AVOutputFormat *fmt;
 static AVFormatContext *oc;
 static AVStream *video_st;
 
-static uint8_t *picture_buf;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //INIT VIDEO
@@ -443,13 +441,12 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 }
 
 int
-put_video_frame(jbyteArray frame, jint width, jint height)
+put_video_frame(uint8_t frame, int width, int height)
 {
 	int ret;
-	
 	uint8_t *picture2_buf;
 	int size;
-	
+
 	pthread_mutex_lock(&mutex);
 
 	if (!oc) {
@@ -462,25 +459,18 @@ put_video_frame(jbyteArray frame, jint width, jint height)
 	avpicture_fill((AVPicture *)picture, picture2_buf,
 			video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
 
-	
-	picture_buf = (uint8_t*)((*env)->GetByteArrayElements(env, frame, JNI_FALSE));
 	//Asociamos el frame a tmp_picture por si el pix_fmt es distinto de PIX_FMT_YUV420P
-	avpicture_fill((AVPicture *)tmp_picture, picture_buf,
-			SRC_PIX_FMT, width, height);
-			
-		
-	
+	avpicture_fill((AVPicture *)tmp_picture, frame, SRC_PIX_FMT, width, height);
+
 	if (write_video_frame(oc, video_st,  width, height) < 0) {
-		(*env)->ReleaseByteArrayElements(env, frame, (jbyte*)picture_buf, 0);
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not write video frame");
 		ret = -2;
 		goto end;
 	}
 
-	(*env)->ReleaseByteArrayElements(env, frame, (jbyte*)picture_buf, 0);
 	av_free(picture2_buf);
 	ret = 0;
-	
+
 end:
 	pthread_mutex_unlock(&mutex);
 	return ret;
