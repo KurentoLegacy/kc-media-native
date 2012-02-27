@@ -441,7 +441,7 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 }
 
 int
-put_video_frame(uint8_t frame, int width, int height)
+put_video_frame_tx(uint8_t frame, int width, int height)
 {
 	int ret;
 	uint8_t *picture2_buf;
