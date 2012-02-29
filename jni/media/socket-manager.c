@@ -52,6 +52,8 @@ static int nVideo;
 
 static URLContext*
 get_connection(int media_type, int port) {
+	int ret;
+
 	URLContext *urlContext = NULL;
 	AVFormatContext *s = NULL;
 
@@ -94,9 +96,10 @@ get_connection(int media_type, int port) {
 			__android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
 					"Memory error: Could not alloc context");
 			s = NULL;
-		} else if (avio_open(&s->pb, rtp, AVIO_RDWR) < 0) {
-			__android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-					"Could not open 'rtp://0.0.0.0:0'");
+		} else if ( (ret = avio_open(&s->pb, rtp, AVIO_RDWR)) < 0) {
+			av_strerror(ret, buf, sizeof(buf));
+			snprintf(buf, sizeof(buf), "%s: Could not open '%s'", buf, rtp);
+			__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
 			av_free(s);
 			s = NULL;
 		}
@@ -227,6 +230,8 @@ jint Java_com_kurento_kas_media_ports_MediaPortManager_takeAudioLocalPort(
 	snprintf(buf, sizeof(buf), "takeAudioLocalPort Port: %d", audioPort);
 	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
 	URLContext *urlContext = get_audio_connection(audioPort);
+	if (!urlContext)
+		return -1;
 	return rtp_get_local_rtp_port(urlContext);
 }
 
@@ -257,6 +262,8 @@ jint Java_com_kurento_kas_media_ports_MediaPortManager_takeVideoLocalPort(
 	snprintf(buf, sizeof(buf), "takeVideoLocalPort Port: %d", videoPort);
 	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
 	URLContext *urlContext = get_video_connection(videoPort);
+	if (!urlContext)
+		return -1;
 	return rtp_get_local_rtp_port(urlContext);
 }
 
