@@ -40,7 +40,6 @@
 		libavcodec/api-example.c
 */
 
-static char buf[256]; //Log
 static char* LOG_TAG = "NDK-video-tx";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -221,34 +220,22 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id, in
 		c->max_qdiff = 4;
 	}
 
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "bit_rate: %d", c->bit_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rc_min_rate: %d", c->rc_min_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rc_max_rate: %d", c->rc_max_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+		  "gop_size: %d\tkeyint_min: %d\tmax_b_frames: %d",
+		  c->gop_size, c->keyint_min, c->max_b_frames);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qmin: %d", c->qmin);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qmax: %d", c->qmax);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qcompress: %f", c->qcompress);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qblur: %f", c->qblur);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "max_qdiff: %d", c->max_qdiff);
 
-snprintf(buf, sizeof(buf), "bit_rate: %d", c->bit_rate);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-
-snprintf(buf, sizeof(buf), "rc_min_rate: %d", c->rc_min_rate);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "rc_max_rate: %d", c->rc_max_rate);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "gop_size: %d\tkeyint_min: %d\tmax_b_frames: %d", c->gop_size, c->keyint_min, c->max_b_frames);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-
-snprintf(buf, sizeof(buf), "qmin: %d", c->qmin);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qmax: %d", c->qmax);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qcompress: %f", c->qcompress);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qblur: %f", c->qblur);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "max_qdiff: %d", c->max_qdiff);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, buf);
-
-
-	
 	// some formats want stream headers to be separate
 	if(oc->oformat->flags & AVFMT_GLOBALHEADER)
 		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
-	
+
 	return st;
 }
 
@@ -339,8 +326,7 @@ init_video_tx(const char* outfile, int width, int height, int frame_rate_num, in
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
 		if ((ret = avio_open(&oc->pb, outfile, URL_WRONLY)) < 0) {
-			snprintf(buf, sizeof(buf), "Could not open '%s'", outfile);
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, buf);
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
 			goto end;
 		}
 	}
@@ -353,8 +339,8 @@ init_video_tx(const char* outfile, int width, int height, int frame_rate_num, in
 
 	urlContext = get_video_connection(0);
 	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
-		snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, buf);
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+			  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
 		goto end;
 	}
 
