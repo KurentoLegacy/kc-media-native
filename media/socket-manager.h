@@ -1,8 +1,5 @@
-/**
- * 
- * @author Miguel París Díaz
- * 
- */
+#ifndef __SOCKET_MANAGER_H__
+#define __SOCKET_MANAGER_H__
  
 #include "libavformat/avformat.h"
 
@@ -11,3 +8,4 @@ URLContext* get_connection_by_local_port(int local_port);
 URLContext* get_audio_connection(int audioPort);
 URLContext* get_video_connection(int videoPort);
 
+#endif /* __SOCKET_MANAGER_H__ */
