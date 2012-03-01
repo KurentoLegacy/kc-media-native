@@ -2,7 +2,9 @@
 #define __UTILS_H__
 
 #include <time.h>
+#include <stdint.h>
 
-int timespecDiff(struct timespec *timeA_p, struct timespec *timeB_p);
+int64_t
+timespecDiff(struct timespec *timeA_p, struct timespec *timeB_p);
 
 #endif /* __UTILS_H__ */
