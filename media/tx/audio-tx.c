@@ -21,6 +21,8 @@
  * 
  */
 
+#include "audio-tx.h"
+#include <util/log.h>
 #include <my-cmdutils.h>
 #include <init-media.h>
 #include <socket-manager.h>
@@ -40,7 +42,6 @@
 		libavcodec/api-example.c
 */
 
-static char buf[256]; //Log
 static char* LOG_TAG = "NDK-audio-tx";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -78,13 +79,13 @@ static int open_audio(AVFormatContext *oc, AVStream *st)
 	/* find the audio encoder */
 	codec = avcodec_find_encoder(c->codec_id);
 	if (!codec) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Codec not found");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
 		return -1;
 	}
 
 	/* open the codec */
 	if ((ret = avcodec_open(c, codec)) < 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not open codec");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
 		return ret;
 	}
 	
@@ -102,27 +103,25 @@ static AVStream *add_audio_stream(AVFormatContext *oc, enum CodecID codec_id, in
 {
 	AVCodecContext *c;
 	AVStream *st;
-	
+
 	st = av_new_stream(oc, 1);
 	if (!st) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not alloc stream");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not alloc stream");
 		return NULL;
 	}
-	
+
 	c = st->codec;
 	c->codec_id = codec_id;
 	c->codec_type = AVMEDIA_TYPE_AUDIO;
-	
+
 	/* put sample parameters */
 	c->bit_rate = bit_rate;//AMR:12200;//MP2:64000
 	c->sample_rate = sample_rate;//AMR:8000;//MP2:44100;
 	c->channels = 1;
 	c->sample_fmt = SAMPLE_FMT_S16;//AV_SAMPLE_FMT_S16;
-	
-	snprintf(buf, sizeof(buf), "bit_rate: %d", c->bit_rate);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "sample_rate: %d", c->sample_rate);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "bit_rate: %d", c->bit_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_rate: %d", c->sample_rate);
 
 	// some formats want stream headers to be separate
 	if(oc->oformat->flags & AVFMT_GLOBALHEADER)
@@ -137,11 +136,10 @@ init_audio_tx(const char* outfile, int codec_id,
 	int ret;
 	URLContext *urlContext;
 
-
 	pthread_mutex_lock(&mutex);
 
 	if ( (ret = init_media()) != 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
 /*	
@@ -154,38 +152,35 @@ init_audio_tx(const char* outfile, int codec_id,
 	/* auto detect the output format from the name. default is mp4. */
 	fmt = av_guess_format(NULL, outfile, NULL);
 	if (!fmt) {
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
 		fmt = av_guess_format("rtp", NULL, NULL);
 	}
 	if (!fmt) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not find suitable output format");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not find suitable output format");
 		ret = -1;
 		goto end;
 	}
-	snprintf(buf, sizeof(buf), "Format established: %s", fmt->name);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", fmt->name);
+
 	//FIXME check 0 <= codec_id <= size(AUDIO_CODECS)
 	fmt->audio_codec = AUDIO_CODECS[codec_id];
-	snprintf(buf, sizeof(buf), "audio codec_id: %d", codec_id);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "Audio Codec stablished: %s", AUDIO_CODEC_NAMES[codec_id]);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-	
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "audio codec_id: %d", codec_id);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Audio Codec stablished: %s", AUDIO_CODEC_NAMES[codec_id]);
+
 	/* allocate the output media context */
 	oc = avformat_alloc_context();
 	if (!oc) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Memory error: Could not alloc context");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Memory error: Could not alloc context");
 		ret = -2;
 		goto end;
 	}
 	oc->oformat = fmt;
 	snprintf(oc->filename, sizeof(oc->filename), "%s", outfile);
-	
+
 	/* add the audio stream using the default format codecs
 	and initialize the codecs */
 	audio_st = NULL;
-	
+
 	if (fmt->audio_codec != CODEC_ID_NONE) {
 		audio_st = add_audio_stream(oc, fmt->audio_codec, sample_rate, bit_rate);
 	}
@@ -193,19 +188,18 @@ init_audio_tx(const char* outfile, int codec_id,
 	/* set the output parameters (must be done even if no
 	parameters). */
 	if (av_set_parameters(oc, NULL) < 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
 		ret = -3;
 		goto end;
 	}
 
 	av_dump_format(oc, 0, outfile, 1);
 
-
 	/* now that all the parameters are set, we can open the
 	audio codec and allocate the necessary encode buffers */
 	if (audio_st) {
 		if((ret = open_audio(oc, audio_st)) < 0) {
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not open audio");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open audio");
 			goto end;
 		}
 	}
@@ -213,22 +207,21 @@ init_audio_tx(const char* outfile, int codec_id,
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
 		if ((ret = avio_open(&oc->pb, outfile, URL_WRONLY)) < 0) {
-			snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+			media_log(MEDIA_LOG_ERROR, LOG_TAG,
+				  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
 			goto end;
 		}
 	}
 
 	//Free old URLContext
 	if( (ret=ffurl_close(oc->pb->opaque)) < 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not free URLContext");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}
 
 	urlContext = get_audio_connection(0);
 	if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0) {
-		snprintf(buf, sizeof(buf), "Could not open '%s'", outfile);
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
 		goto end;
 	}
 
@@ -241,17 +234,14 @@ init_audio_tx(const char* outfile, int codec_id,
 	rptmc->payload_type = payload_type;
 	rptmc->max_frames_per_packet = 1;
 
-	snprintf(buf, sizeof(buf), "Frames per packet: %d", rptmc->max_frames_per_packet);
-	//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "Frames per packet: %d", rptmc->max_frames_per_packet);
 
 	if(audio_st->codec->frame_size > 1)
 		frame_size = audio_st->codec->frame_size;
 	else
 		frame_size = sample_rate * DEFAULT_FRAME_SIZE / 1000;
 	ret = frame_size;
-
-	snprintf(buf, sizeof(buf), "Audio frame size: %d", frame_size);
-	//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "Audio frame size: %d", frame_size);
 
 end:
 	pthread_mutex_unlock(&mutex);
@@ -272,7 +262,7 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st, int16_t *samples
 	int ret;
 
 	c = st->codec;
-	
+
 	pkt.size= avcodec_encode_audio(c, audio_outbuf, frame_size, samples);
 	
 	if (c->coded_frame && c->coded_frame->pts != AV_NOPTS_VALUE)
@@ -284,10 +274,10 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st, int16_t *samples
 	/* write the compressed frame in the media file */
 	ret = av_write_frame(oc, &pkt);
 	if (ret != 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
 		return ret;
 	}
-	
+
 	return 0;
 }
 
@@ -297,7 +287,7 @@ put_audio_samples_tx(int16_t* samples, int n_samples) {
 
 	pthread_mutex_lock(&mutex);
 	if (!oc) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "No audio initiated.");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No audio initiated.");
 		ret = -1;
 		goto end;
 	}
@@ -305,7 +295,7 @@ put_audio_samples_tx(int16_t* samples, int n_samples) {
 	nframes = n_samples / frame_size;
 	for (i=0; i<nframes; i++) {
 		if( (ret=write_audio_frame(oc, audio_st, &samples[i*frame_size])) < 0) {
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not write audio frame");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write audio frame");
 			goto end;
 		}
 	}
@@ -347,17 +337,15 @@ finish_audio_tx() {
 			av_freep(&oc->streams[i]->codec);
 			av_freep(&oc->streams[i]);
 		}
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Close the context...");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Close the context...");
 		close_context(oc);
 		oc = NULL;
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "ok");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 	}
-	
+
 /*	for (i=0;i<AVMEDIA_TYPE_NB;i++)
 		av_free(avcodec_opts[i]);
-//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "336");	
 	av_free(avformat_opts);
-//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "338");	
 	av_free(sws_opts);
 */
 	pthread_mutex_unlock(&mutex);
@@ -365,4 +353,3 @@ finish_audio_tx() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-
