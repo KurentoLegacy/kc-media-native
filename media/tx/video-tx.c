@@ -20,6 +20,7 @@
  * @author Miguel París Díaz * 
  */
 
+#include "video-tx.h"
 #include <my-cmdutils.h>
 #include <init-media.h>
 #include <socket-manager.h>
