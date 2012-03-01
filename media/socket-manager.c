@@ -22,6 +22,7 @@
  */
 
 #include "socket-manager.h"
+#include <util/log.h>
 #include <init-media.h>
 
 #include <pthread.h>
@@ -33,7 +34,6 @@ enum {
 	AUDIO, VIDEO,
 };
 
-static char buf[256]; //Log
 static char* LOG_TAG = "NDK-socket-manager";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -56,7 +56,7 @@ get_connection(int media_type, int port) {
 	static char rtp[256];
 
 	if (init_media() != 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		return NULL;
 	}
 
@@ -82,19 +82,19 @@ get_connection(int media_type, int port) {
 	if (!s) {
 		if (port != -1) {
 			snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0:0?localport=%d", port);
-			//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, rtp);
+			media_log(MEDIA_LOG_DEBUG, LOG_TAG, rtp);
 		} else {
 			snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0:0");
-			//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, rtp);
+			media_log(MEDIA_LOG_DEBUG, LOG_TAG, rtp);
 		}
 		s = avformat_alloc_context();
 		if (!s) {
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-			//		"Memory error: Could not alloc context");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Memory error: Could not alloc context");
 			s = NULL;
 		} else if (avio_open(&s->pb, rtp, AVIO_RDWR) < 0) {
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-			//		"Could not open 'rtp://0.0.0.0:0'");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Could not open 'rtp://0.0.0.0:0'");
 			av_free(s);
 			s = NULL;
 		}
@@ -122,36 +122,31 @@ static void free_connection(URLContext *urlContext) {
 
 	pthread_mutex_lock(&mutex);
 
-	snprintf(buf, sizeof(buf), "before nAudio: %d", nAudio);
-	//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "before nVideo: %d", nVideo);
-	//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+	media_log(MEDIA_LOG_ERROR, LOG_TAG, "before nAudio: %d", nAudio);
+	media_log(MEDIA_LOG_ERROR, LOG_TAG, "before nVideo: %d", nVideo);
 
 	if (pAudioFormatCtx && pAudioFormatCtx->pb && (urlContext
 			== pAudioFormatCtx->pb->opaque) && (--nAudio == 0)) {
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free pAudioFormatCtx");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pAudioFormatCtx");
 		av_free(pAudioFormatCtx);
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free ok");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pAudioFormatCtx = NULL;
 	}
 	if (pVideoFormatCtx && pVideoFormatCtx->pb && (urlContext
 			== pVideoFormatCtx->pb->opaque) && (--nVideo == 0)) {
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free pVideoFormatCtx");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pVideoFormatCtx");
 		av_free(pVideoFormatCtx);
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free ok");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pVideoFormatCtx = NULL;
 	}
 	urlContext = NULL;
 
-	snprintf(buf, sizeof(buf), "after nAudio: %d", nAudio);
-	//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
-	snprintf(buf, sizeof(buf), "after nVideo: %d", nVideo);
-	//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+	media_log(MEDIA_LOG_ERROR, LOG_TAG, "after nAudio: %d", nAudio);
+	media_log(MEDIA_LOG_ERROR, LOG_TAG, "after nVideo: %d", nVideo);
 
 	last_released = (nAudio == 0) && (nVideo == 0);
 	if (last_released) {
-		snprintf(buf, sizeof(buf), "deblocked: %d", n_blocked);
-		//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+		media_log(MEDIA_LOG_INFO, LOG_TAG, "deblocked: %d", n_blocked);
 		for (i = 0; i < n_blocked; i++)
 			sem_post(&sem);
 	}
@@ -169,7 +164,7 @@ void close_context(AVFormatContext *s) {
 
 	//if is output
 	if (s->oformat && s->pb) {
-		//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free output");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free output");
 		free_connection(s->pb->opaque);
 		s->pb->opaque = NULL;
 		if (!(s->oformat->flags & AVFMT_NOFILE)) {
@@ -183,7 +178,7 @@ void close_context(AVFormatContext *s) {
 		rt = s->priv_data;
 		for (i = 0; i < rt->nb_rtsp_streams; i++) {
 			rtsp_st = rt->rtsp_streams[i];
-			//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "free input");
+			media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free input");
 			free_connection(rtsp_st->rtp_handle);
 			rtsp_st->rtp_handle = NULL;
 		}
@@ -220,8 +215,7 @@ get_audio_connection(int audioPort) {
 
 int
 take_audio_local_port(int audioPort) {
-	snprintf(buf, sizeof(buf), "takeAudioLocalPort Port: %d", audioPort);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "takeAudioLocalPort Port: %d", audioPort);
 	URLContext *urlContext = get_audio_connection(audioPort);
 	return rtp_get_local_rtp_port(urlContext);
 }
@@ -230,7 +224,7 @@ int
 release_audio_local_port () {
 	int ret;
 
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "releaseAudioLocalPort");
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseAudioLocalPort");
 	if (pAudioFormatCtx && pAudioFormatCtx->pb)
 		free_connection(pAudioFormatCtx->pb->opaque);
 
@@ -250,8 +244,7 @@ get_video_connection(int videoPort) {
 
 int
 take_video_local_port (int videoPort) {
-	snprintf(buf, sizeof(buf), "takeVideoLocalPort Port: %d", videoPort);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "takeVideoLocalPort Port: %d", videoPort);
 	URLContext *urlContext = get_video_connection(videoPort);
 	return rtp_get_local_rtp_port(urlContext);
 }
@@ -260,7 +253,7 @@ int
 release_video_local_port () {
 	int ret;
 
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "releaseVideoLocalPort");
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseVideoLocalPort");
 	if (pVideoFormatCtx && pVideoFormatCtx->pb)
 		free_connection(pVideoFormatCtx->pb->opaque);
 
@@ -270,4 +263,3 @@ release_video_local_port () {
 
 	return ret;
 }
-
