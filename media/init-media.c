@@ -22,9 +22,8 @@
  */
 
 #include "init-media.h"
+#include <util/log.h>
 #include <pthread.h>
-
-static char buf[256]; //Log
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int initialized = 0;
@@ -33,71 +32,69 @@ static int initialized = 0;
 	see	libavutil/log.c
 		ffserver.c
 */
-/*
+
 static void
-android_av_log(void *ptr, int level, const char *fmt, va_list vargs)
+media_av_log(void *ptr, int level, const char *fmt, va_list vargs)
 {
-	int android_log = ANDROID_LOG_UNKNOWN;
+	int media_log_level =  MEDIA_LOG_UNKNOWN;
+
 	switch(level){
 	case AV_LOG_QUIET:
-		android_log = ANDROID_LOG_INFO;
+		media_log_level = MEDIA_LOG_UNKNOWN;
 		break;
 	case AV_LOG_PANIC:
-		android_log = ANDROID_LOG_ERROR;
+		media_log_level = MEDIA_LOG_FATAL;
 		break;
 	case AV_LOG_FATAL:
-		android_log = ANDROID_LOG_FATAL;
+		media_log_level = MEDIA_LOG_FATAL;
 		break;
 	case AV_LOG_ERROR:
-		android_log = ANDROID_LOG_ERROR;
+		media_log_level = MEDIA_LOG_ERROR;
 		break;
 	case AV_LOG_WARNING:
-		android_log = ANDROID_LOG_WARN;
+		media_log_level = MEDIA_LOG_WARN;
 		break;
 	case AV_LOG_INFO:
-		android_log = ANDROID_LOG_INFO;
+		media_log_level = MEDIA_LOG_INFO;
 		break;
 	case AV_LOG_VERBOSE:
-		android_log = ANDROID_LOG_VERBOSE;
+		media_log_level = MEDIA_LOG_VERBOSE;
 		break;
 	case AV_LOG_DEBUG:
-		android_log = ANDROID_LOG_DEBUG;
+		media_log_level = MEDIA_LOG_DEBUG;
 		break;
 	}
-	vsnprintf(buf, sizeof(buf), fmt, vargs);
-	__android_log_write(android_log, "av_log", buf);
+
+	media_vlog(media_log_level, "av_log", fmt, vargs);
 }
-*/
+
 static int
-lockmgr(void **mtx, enum AVLockOp op)
-{
+lockmgr(void **mtx, enum AVLockOp op) {
 	switch(op) {
-		case AV_LOCK_CREATE:
-			*mtx = malloc(sizeof(pthread_mutex_t));
-			if(!*mtx)
-				return 1;
-			return !!pthread_mutex_init(*mtx, NULL);
-		case AV_LOCK_OBTAIN:
-			return !!pthread_mutex_lock(*mtx);
-		case AV_LOCK_RELEASE:
-			return !!pthread_mutex_unlock(*mtx);
-		case AV_LOCK_DESTROY:
-			pthread_mutex_destroy(*mtx);
-			free(*mtx);
-			return 0;
+	case AV_LOCK_CREATE:
+		*mtx = malloc(sizeof(pthread_mutex_t));
+		if(!*mtx)
+			return 1;
+		return !!pthread_mutex_init(*mtx, NULL);
+	case AV_LOCK_OBTAIN:
+		return !!pthread_mutex_lock(*mtx);
+	case AV_LOCK_RELEASE:
+		return !!pthread_mutex_unlock(*mtx);
+	case AV_LOCK_DESTROY:
+		pthread_mutex_destroy(*mtx);
+		free(*mtx);
+		return 0;
 	}
 	return 1;
 }
 
-
 int
-init_media()
-{
+init_media() {
 	int ret = 0;
 	
 	pthread_mutex_lock(&mutex);
 	if(!initialized) {
-		//av_log_set_callback(android_av_log);
+		av_log_set_callback(media_av_log);
 		av_register_all();
 		ret = av_lockmgr_register(lockmgr);
 		initialized++;
@@ -106,4 +103,3 @@ init_media()
 	
 	return ret;
 }
-
