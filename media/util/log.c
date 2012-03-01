@@ -51,12 +51,10 @@ static void (*media_log_callback)(int level, const char *tag,
 	media_log_default_callback;
 
 void media_log(int level, const char *tag, const char *fmt, ...) {
-	fprintf(stderr, "in\n");
 	va_list vl;
 	va_start(vl, fmt);
 	media_vlog(level, tag, fmt, vl);
 	va_end(vl);
-	fprintf(stderr, "out\n");
 }
 
 void media_vlog(int level, const char *tag, const char *fmt, va_list vl) {
