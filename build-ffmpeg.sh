@@ -8,13 +8,14 @@ make clean && make distclean || echo clean OK
 ./configure \
         --prefix=$FFMPEG_INSTALL/ffmpeg-$DIST \
         --cc=${PLATFORM_BIN_DIR}/$CC \
-        --as="gas-preprocessor.pl ${PLATFORM_BIN_DIR}/$CC " \
+        --as="$CPP ${PLATFORM_BIN_DIR}/$CC " \
         --sysroot=$PLATFORM_SDK_DIR \
-        --extra-cflags="$MY_CFLAGS " \
-        --extra-ldflags="$MY_LDFLAGS " \
-	$OPTS
+        --extra-cflags="$MY_CFLAGS $AMR_C_EXTRA " \
+        --extra-ldflags="$MY_LDFLAGS $AMR_LD_EXTRA " \
+	--extra-libs="$AMR_L " \
+	$OPTS \
+	$AMR_CONFIGURE_OPTS
 
 make && make install
 
 popd; popd
-
