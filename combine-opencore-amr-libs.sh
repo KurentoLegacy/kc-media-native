@@ -21,7 +21,7 @@ for LIB in $BUILD_LIBS; do
 done
 
 arch=`echo $ARCHS | cut -d" " -f1`
-if [ -n $arch ]; then
+if [ -n "$arch" ]; then
   cp -R opencore-amr-$arch/include/* ./include
 fi
 
