@@ -4,7 +4,7 @@ export EXTERNAL=$PWD/external
 TARGET_DIR=$PWD/target
 export FFMPEG_INSTALL=$TARGET_DIR/ffmpeg_install
 export AMR_INSTALL=$TARGET_DIR/opencore-amr_install
-
+export X264_INSTALL=$TARGET_DIR/x264_install
 
 
 iphone_version=4.3
@@ -25,7 +25,7 @@ if [ 0 -eq 0 ]; then
 ##################################################################
 arch=armv6
 echo "+++ build opencore-amr for $arch +++"
-ARCHS="$arch "
+export ARCHS="$arch "
 platform=iPhoneOS
 
 PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
@@ -52,7 +52,7 @@ if [ 0 -eq 0 ]; then
 ##################################################################
 arch=armv7
 echo "+++ build opencore-amr for $arch +++"
-ARCHS="$ARCHS $arch "
+export ARCHS="$ARCHS $arch "
 platform=iPhoneOS
 
 PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
@@ -79,7 +79,7 @@ if [ 0 -eq 0 ]; then
 ##################################################################
 arch=i386
 echo "+++ build opencore-amr for $arch +++"
-ARCHS="$ARCHS $arch "
+export ARCHS="$ARCHS $arch "
 platform=iPhoneSimulator
 
 PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
@@ -116,9 +116,96 @@ echo "### build opencore-amr OK ###############################################"
 ### opencore-amr ###############################################################
 
 
-
 space
 
+
+### x264 #######################################################################
+echo "### build x264 ##########################################################"
+rm -fr $X264_INSTALL
+mkdir -p $X264_INSTALL
+
+if [ 0 -eq 0 ]; then
+##################################################################
+arch=armv6
+echo "+++ build x264 for $arch +++"
+export ARCHS="$arch "
+platform=iPhoneOS
+
+PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
+export PLATFORM_BIN_DIR="${PLATFORM_DIR}/usr/bin"
+export PLATFORM_SDK_DIR="${PLATFORM_DIR}/SDKs/${platform}${iphone_version}.sdk"
+
+export DIST=$arch
+export MY_CC="gcc"
+host="arm-apple-darwin"
+export MY_CFLAGS="-arch $arch"
+export MY_LDFLAGS="-arch $arch -L${PLATFORM_SDK_DIR}/usr/lib/system"
+export OPTS="--host=$host --enable-pic --disable-asm "
+
+./build-x264.sh
+echo "+++ build x264 for $arch OK +++"
+##################################################################
+fi
+space
+if [ 0 -eq 0 ]; then
+##################################################################
+arch=armv7
+echo "+++ build x264 for $arch +++"
+export ARCHS="$ARCHS $arch "
+platform=iPhoneOS
+
+PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
+export PLATFORM_BIN_DIR="${PLATFORM_DIR}/usr/bin"
+export PLATFORM_SDK_DIR="${PLATFORM_DIR}/SDKs/${platform}${iphone_version}.sdk"
+
+export DIST=$arch
+export MY_CC="gcc"
+host="arm-apple-darwin"
+export MY_CFLAGS="-arch $arch"
+export MY_LDFLAGS="-arch $arch -L${PLATFORM_SDK_DIR}/usr/lib/system"
+export OPTS="--host=$host --enable-pic "
+
+./build-x264.sh
+echo "+++ build x264 for $arch OK +++"
+##################################################################
+fi
+space
+if [ 0 -eq 0 ]; then
+##################################################################
+arch=i386
+echo "+++ build x264 for $arch +++"
+export ARCHS="$ARCHS $arch "
+platform=iPhoneSimulator
+
+PLATFORM_DIR="/Developer/Platforms/${platform}.platform/Developer"
+export PLATFORM_BIN_DIR="${PLATFORM_DIR}/usr/bin"
+export PLATFORM_SDK_DIR="${PLATFORM_DIR}/SDKs/${platform}${iphone_version}.sdk"
+
+export DIST=$arch
+export MY_CC="i686-apple-darwin10-gcc-4.2.1"
+export MY_CFLAGS=""
+export MY_LDFLAGS="-Wl,-syslibroot,$PLATFORM_SDK_DIR "
+export OPTS="--disable-asm"
+
+./build-x264.sh
+echo "+++ build x264 for $arch OK +++"
+##################################################################
+fi
+
+echo "+++ combine x264 libs +++"
+./combine-x264-libs.sh
+echo "+++ combine x264 libs OK +++"
+
+export X264_C_EXTRA="-I$X264_INSTALL/include "
+export X264_LD_EXTRA="-L$X264_INSTALL/lib "
+export X264_L="-lx264"
+export X264_CONFIGURE_OPTS="--enable-gpl --enable-libx264 --enable-encoder=libx264";
+
+echo "### build x264 OK #######################################################"
+### opencore-amr ###############################################################
+
+
+space
 
 
 ### ffmpeg #####################################################################
@@ -132,7 +219,7 @@ export CPP="gas-preprocessor.pl"
 if [ 0 -eq 0 ]; then
 ##################################################################
 echo Build armv6
-ARCHS="armv6 "
+export ARCHS="armv6 "
 armarch=armv6
 arch=arm
 cpu=arm1176jzf-s
@@ -156,7 +243,7 @@ fi
 if [ 0 -eq 0 ]; then
 ##################################################################
 echo build armv7
-ARCHS="$ARCHS armv7 "
+export ARCHS="$ARCHS armv7 "
 armarch=armv7
 arch=arm
 cpu=cortex-a8
@@ -181,7 +268,7 @@ fi
 if [ 0 -eq 0 ]; then
 ##################################################################
 echo build i386
-ARCHS="$ARCHS i386 "
+export ARCHS="$ARCHS i386 "
 export OPTS="--disable-yasm "
 
 platform=iPhoneSimulator
