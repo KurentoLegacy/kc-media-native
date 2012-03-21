@@ -31,7 +31,16 @@
 
 #include "sdp-manager.h"
 
-#include <utils.h>
+#include <util/utils.h>
+
+typedef struct DecodedFrame {
+	AVFrame* pFrameRGB;
+	uint8_t *buffer;
+} DecodedFrame;
+
+typedef void (*put_video_frame_rx)(uint8_t*, int, int, int);
+typedef DecodedFrame* (*get_decoded_frame_buffer)(int width, int height);
+typedef void (*release_decoded_frame_buffer)();
 
 static char buf[256]; //Log
 static char* LOG_TAG = "NDK-video-rx";
@@ -40,49 +49,45 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int receive = 0;
 static int sws_flags = SWS_BICUBIC;
 
-
+/*
 enum {
 	QUEUE_SIZE = 1, // FIXME: Coupled with VideoRecorderComponent
 };
-
-typedef struct DecodedFrame{
+*/
+/*
+typedef struct DecodedFrame {
 	AVFrame* pFrameRGB;
 	jintArray out_buffer_video;
 	uint8_t *buffer;
 } DecodedFrame;
+*/
 
-
-jint
-Java_com_kurento_kas_media_rx_MediaRx_stopVideoRx(JNIEnv* env,
-				jobject thiz)
-{
+int
+stop_video_rx() {
 	pthread_mutex_lock(&mutex);
 	receive = 0;
 	pthread_mutex_unlock(&mutex);
 	return 0;
 }
 
-
-jint
-Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
-				jstring sdp, jint maxDelay, jobject videoReceiver)
-{
-	
-	const char *pSdpString = NULL;
-
+int
+start_video_rx(const char* sdp, int maxDelay, put_video_frame_rx callback,
+				get_decoded_frame_buffer get_buffer,
+				release_decoded_frame_buffer release_buffer) {
 	AVFormatContext *pFormatCtx = NULL;
 	AVFormatParameters params, *ap = &params;
 	AVCodecContext *pDecodecCtxVideo = NULL;
 	AVCodec *pDecodecVideo = NULL;
 	AVFrame *pFrame = NULL;
-	DecodedFrame decoded_frames[QUEUE_SIZE+1];
+//	DecodedFrame decoded_frames[QUEUE_SIZE+1];
+	DecodedFrame *decoded_frame;
 
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
 
 	int i, j, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
-	int n_packet, n_frame;
+	int n_packet; //, n_frame;
 	
 	struct SwsContext *img_convert_ctx;
 
@@ -90,20 +95,14 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	uint64_t time;
 	uint64_t total_time = 0;
 
-	// Init buffers
+/*	// Init buffers
 	for (i=0; i<QUEUE_SIZE+1; i++) {
 		decoded_frames[i].pFrameRGB = NULL;
 		decoded_frames[i].out_buffer_video = NULL;
 		decoded_frames[i].buffer = NULL;
 	}
-
-	pSdpString = (*env)->GetStringUTFChars(env, sdp, NULL);
-	if (pSdpString == NULL) {
-		ret = -1; // OutOfMemoryError already thrown
-		goto end;
-	}
-
-	snprintf(buf, sizeof(buf), "pSdpString: %s", pSdpString);
+*/
+	snprintf(buf, sizeof(buf), "sdp: %s", sdp);
 	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
 
 	if( (ret= init_media()) != 0) {
@@ -127,7 +126,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 		ap->prealloced_context = 1;
 
 		// Open video file
-		if ( (ret = av_open_input_sdp(&pFormatCtx, pSdpString, ap)) != 0 ) {
+		if ( (ret = av_open_input_sdp(&pFormatCtx, sdp, ap)) != 0 ) {
 			av_strerror(ret, buf, sizeof(buf));
 			snprintf(buf, sizeof(buf), "%s: Couldn't process sdp.", buf);
 			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
@@ -150,11 +149,12 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 
 	// Find the first video stream
 	videoStream = -1;
-	for (i = 0; i < pFormatCtx->nb_streams; i++)
+	for (i = 0; i < pFormatCtx->nb_streams; i++) {
 		if (pFormatCtx->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO) {
 			videoStream = i;
 			break;
 		}
+	}
 	if (videoStream == -1) {
 		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Didn't find a video stream");
 		ret = -4;
@@ -182,7 +182,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 	//Allocate video frame
 	pFrame = avcodec_alloc_frame();
 
-	//Allocate AVFrames structures
+/*	//Allocate AVFrames structures
 	for (i=0; i<QUEUE_SIZE+1; i++) {
 		decoded_frames[i].pFrameRGB = avcodec_alloc_frame();
 		if (decoded_frames[i].pFrameRGB == NULL) {
@@ -190,17 +190,7 @@ Java_com_kurento_kas_media_rx_MediaRx_startVideoRx(JNIEnv* env, jobject thiz,
 			goto end;
 		}
 	}
-
-	//Prepare Call to Method Java.
-	jclass cls = (*env)->GetObjectClass(env, videoReceiver);
-	
-	jmethodID midVideo = (*env)->GetMethodID(env, cls, "putVideoFrameRx", "([IIII)V");
-	if (midVideo == 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "putVideoFrameRx([IIII)V no exist!");
-		ret = -8;
-		goto end;
-	}
-
+*/
 	picture_nbytes = 0;
 
 	current_width = -1;
@@ -231,13 +221,13 @@ snprintf(buf, sizeof(buf), "avpkt->dts: %lld", avpkt.dts);
 snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 //__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 				while (avpkt.size > 0) {
-					n_frame = i % (QUEUE_SIZE+1);
-clock_gettime(CLOCK_MONOTONIC, &start);
+//					n_frame = i % (QUEUE_SIZE+1);
+//clock_gettime(CLOCK_MONOTONIC, &start);
 					//Decode video frame
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
-clock_gettime(CLOCK_MONOTONIC, &t2);
-time = timespecDiff(&t2, &start);
-snprintf(buf, sizeof(buf), "decode time: %llu ms", time);
+//clock_gettime(CLOCK_MONOTONIC, &t2);
+//time = timespecDiff(&t2, &start);
+//snprintf(buf, sizeof(buf), "decode time: %llu ms", time);
 //__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 					if (len < 0) {
 						//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error in video decoding.");
@@ -250,28 +240,8 @@ snprintf(buf, sizeof(buf), "decode time: %llu ms", time);
 					}
 					//Did we get a video frame?
 					if (got_picture) {
-						if ( (buffer_nbytes < 0) || (current_width != pDecodecCtxVideo->width) || (current_height != pDecodecCtxVideo->height) ) {
-							current_width = pDecodecCtxVideo->width;
-							current_height = pDecodecCtxVideo->height;
-							// Determine required picture size
-							picture_nbytes = avpicture_get_size(PIX_FMT_RGB32, current_width, current_height);
-							if (picture_nbytes > buffer_nbytes) {
-								for (j=0; j<QUEUE_SIZE+1; j++) {
-									(*env)->DeleteLocalRef(env, decoded_frames[j].out_buffer_video);
-									decoded_frames[j].out_buffer_video = (jintArray)(*env)->NewIntArray(env, picture_nbytes/sizeof(jint));
-									decoded_frames[j].buffer = (*env)->GetIntArrayElements(env, decoded_frames[j].out_buffer_video, NULL);
-									(*env)->ReleaseIntArrayElements(env, decoded_frames[j].out_buffer_video, (jint*)(decoded_frames[j].buffer), 0);
-								}
-								buffer_nbytes = picture_nbytes;
-							}
-							//Assign appropriate parts of buffer to image planes in pFrameRGB
-							//Note that pFrameRGB is an AVFrame, but AVFrame is a superset of AVPicture
-							for (j=0; j<QUEUE_SIZE+1; j++) {
-								avpicture_fill((AVPicture*) decoded_frames[j].pFrameRGB, decoded_frames[j].buffer, PIX_FMT_RGB32, current_width, current_height);
-							}
-							snprintf(buf, sizeof(buf), "current_width: %d\tcurrent_height: %d\tpicture_nbytes: %d", current_width, current_height, picture_nbytes);
-							//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-						}
+						decoded_frame = get_buffer(current_width, current_width);
+
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(current_width,
 								current_height, pDecodecCtxVideo->pix_fmt,
@@ -282,20 +252,20 @@ snprintf(buf, sizeof(buf), "decode time: %llu ms", time);
 							goto end;
 						}
 						sws_scale(img_convert_ctx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0,
-								current_height, ((AVPicture*) decoded_frames[n_frame].pFrameRGB)->data,
-								((AVPicture*) decoded_frames[n_frame].pFrameRGB)->linesize);
+								current_height, ((AVPicture*) decoded_frame->pFrameRGB)->data,
+								((AVPicture*) decoded_frame->pFrameRGB)->linesize);
 						sws_freeContext(img_convert_ctx);
-						(*env)->CallVoidMethod(env, videoReceiver, midVideo, decoded_frames[n_frame].out_buffer_video, current_width, current_height, i);
+						callback(decoded_frame->buffer, current_width, current_height, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
 					avpkt.size -= len;
 					avpkt.data += len;
 					i++;
-clock_gettime(CLOCK_MONOTONIC, &end);
-time = timespecDiff(&end, &start);
-total_time += time;
-snprintf(buf, sizeof(buf), "time: %llu ms; average: %llu ms", time, total_time/i);
+//clock_gettime(CLOCK_MONOTONIC, &end);
+//time = timespecDiff(&end, &start);
+//total_time += time;
+//snprintf(buf, sizeof(buf), "time: %llu ms; average: %llu ms", time, total_time/i);
 //__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
 				}
 			}
@@ -309,12 +279,7 @@ snprintf(buf, sizeof(buf), "time: %llu ms; average: %llu ms", time, total_time/i
 	ret = 0;
 
 end:
-	(*env)->ReleaseStringUTFChars(env, sdp, pSdpString);
-
-	for (j=0; j<QUEUE_SIZE+1; j++) {
-		(*env)->DeleteLocalRef(env, decoded_frames[j].out_buffer_video);
-		av_free(decoded_frames[j].pFrameRGB);
-	}
+	release_buffer();
 
 	//Free the YUV frame
 	av_free(pFrame);
