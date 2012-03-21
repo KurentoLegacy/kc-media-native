@@ -187,6 +187,7 @@ snprintf(buf, sizeof(buf), "time: %lld s", avpkt.dts / pDecodecCtxAudio->sample_
 
 				while (avpkt.size > 0) {
 					//Decode audio frame
+					//FIXME: do not reuse outbuf.
 					out_size = DATA_SIZE;
 					len = avcodec_decode_audio3(pDecodecCtxAudio, (int16_t *) outbuf, &out_size, &avpkt);
 					if (len < 0) {
