@@ -234,7 +234,7 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(current_width,
 								current_height, pDecodecCtxVideo->pix_fmt,
-								current_width, current_height, PIX_FMT_RGB32,
+								current_width, current_height, frame_manager->pix_fmt,
 								sws_flags, NULL, NULL, NULL);
 						if (img_convert_ctx == NULL) {
 							ret = -9;
