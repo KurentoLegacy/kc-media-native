@@ -62,9 +62,7 @@ stop_video_rx() {
 }
 
 int
-start_video_rx(const char* sdp, int maxDelay, put_video_frame_rx callback,
-				get_decoded_frame_buffer get_buffer,
-				release_decoded_frame_buffer release_buffer) {
+start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	AVFormatContext *pFormatCtx = NULL;
 	AVFormatParameters params, *ap = &params;
 	AVCodecContext *pDecodecCtxVideo = NULL;
@@ -231,7 +229,7 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 					}
 					//Did we get a video frame?
 					if (got_picture) {
-						decoded_frame = get_buffer(current_width, current_width);
+						decoded_frame = frame_manager->get_decoded_frame_buffer(current_width, current_width);
 
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(current_width,
@@ -246,7 +244,7 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 								current_height, ((AVPicture*) decoded_frame->pFrameRGB)->data,
 								((AVPicture*) decoded_frame->pFrameRGB)->linesize);
 						sws_freeContext(img_convert_ctx);
-						callback(decoded_frame->buffer, current_width, current_height, i);
+						frame_manager->put_video_frame_rx(decoded_frame->buffer, current_width, current_height, i);
 					}
 					pthread_mutex_unlock(&mutex);
 					
@@ -270,7 +268,7 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 	ret = 0;
 
 end:
-	release_buffer();
+	frame_manager->release_decoded_frame_buffer();
 
 	//Free the YUV frame
 	av_free(pFrame);
