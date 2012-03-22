@@ -21,26 +21,17 @@
  * 
  */
 
+#include "video-rx.h"
 #include <init-media.h>
 #include <socket-manager.h>
 
 #include <pthread.h>
 
-#include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
 
 #include "sdp-manager.h"
 
 #include <util/utils.h>
-
-typedef struct DecodedFrame {
-	AVFrame* pFrameRGB;
-	uint8_t *buffer;
-} DecodedFrame;
-
-typedef void (*put_video_frame_rx)(uint8_t*, int, int, int);
-typedef DecodedFrame* (*get_decoded_frame_buffer)(int width, int height);
-typedef void (*release_decoded_frame_buffer)();
 
 static char buf[256]; //Log
 static char* LOG_TAG = "NDK-video-rx";
