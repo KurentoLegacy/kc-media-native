@@ -15,7 +15,7 @@ function space {
   for i in `seq 1 3`; do echo ""; done
 }
 
-
+if false; then
 ### opencore-amr ###############################################################
 echo "### build opencore-amr ##################################################"
 rm -fr $AMR_INSTALL
@@ -101,6 +101,7 @@ export OPTS="--host=$host --target=$target"
 echo "+++ build opencore-amr for $arch OK +++"
 ##################################################################
 fi
+fi
 
 echo "+++ combine opencore-amr libs +++"
 ./combine-opencore-amr-libs.sh
@@ -116,9 +117,12 @@ echo "### build opencore-amr OK ###############################################"
 ### opencore-amr ###############################################################
 
 
+
 space
 
 
+
+if false; then
 ### x264 #######################################################################
 echo "### build x264 ##########################################################"
 rm -fr $X264_INSTALL
@@ -191,6 +195,7 @@ export OPTS="--disable-asm"
 echo "+++ build x264 for $arch OK +++"
 ##################################################################
 fi
+fi
 
 echo "+++ combine x264 libs +++"
 ./combine-x264-libs.sh
@@ -205,10 +210,14 @@ echo "### build x264 OK #######################################################"
 ### opencore-amr ###############################################################
 
 
+
 space
 
 
+
+if false; then
 ### ffmpeg #####################################################################
+echo "### build ffmpeg ########################################################"
 rm -fr $FFMPEG_INSTALL
 mkdir -p $FFMPEG_INSTALL
 
@@ -285,4 +294,10 @@ export DIST=i386
 ./build-ffmpeg.sh
 ##################################################################
 fi
+fi
+export ARCHS="armv6 armv7 i386 "
+echo "+++ combine ffmpeg libs +++"
+./combine-ffmpeg-libs.sh
+echo "+++ combine ffmpeg libs OK +++"
+echo "### build ffmpeg OK #####################################################"
 ### ffmpeg #####################################################################
