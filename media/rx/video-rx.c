@@ -22,6 +22,8 @@
  */
 
 #include "video-rx.h"
+#include <util/log.h>
+#include <util/utils.h>
 #include <init-media.h>
 #include <socket-manager.h>
 
@@ -91,11 +93,10 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		decoded_frames[i].buffer = NULL;
 	}
 */
-	snprintf(buf, sizeof(buf), "sdp: %s", sdp);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", sdp);
 
-	if( (ret= init_media()) != 0) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
+	if ((ret = init_media()) != 0) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
 
@@ -115,26 +116,23 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		ap->prealloced_context = 1;
 
 		// Open video file
-		if ( (ret = av_open_input_sdp(&pFormatCtx, sdp, ap)) != 0 ) {
+		if ((ret = av_open_input_sdp(&pFormatCtx, sdp, ap)) != 0 ) {
 			av_strerror(ret, buf, sizeof(buf));
-			snprintf(buf, sizeof(buf), "%s: Couldn't process sdp.", buf);
-			//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't process sdp: %s", buf);
 			ret = -2;
 			goto end;
 		}
 
 		// Retrieve stream information
-		if ( (ret = av_find_stream_info(pFormatCtx)) < 0) {
+		if ((ret = av_find_stream_info(pFormatCtx)) < 0) {
 			av_strerror(ret, buf, sizeof(buf));
-			snprintf(buf, sizeof(buf), "%s: Couldn't find stream information.", buf);
-			//__android_log_write(ANDROID_LOG_WARN, LOG_TAG, buf);
+			media_log(MEDIA_LOG_WARN, LOG_TAG, "Couldn't find stream information: %s", buf);
 			close_context(pFormatCtx);
 		} else
 			break;
 	}
 
-	snprintf(buf, sizeof(buf), "max_delay: %d ms", pFormatCtx->max_delay/1000);
-	//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", pFormatCtx->max_delay/1000);
 
 	// Find the first video stream
 	videoStream = -1;
@@ -145,7 +143,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		}
 	}
 	if (videoStream == -1) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Didn't find a video stream");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Didn't find a video stream");
 		ret = -4;
 		goto end;
 	}
@@ -156,7 +154,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	// Find the decoder for the video stream
 	pDecodecVideo = avcodec_find_decoder(pDecodecCtxVideo->codec_id);
 	if (pDecodecVideo == NULL) {
-		//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Unsupported codec!");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Unsupported codec");
 		ret = -5; // Codec not found
 		goto end;
 	}
@@ -201,25 +199,19 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 			avpkt_data_init = avpkt.data;
 			//Is this a avpkt from the video stream?
 			if (avpkt.stream_index == videoStream) {
-snprintf(buf, sizeof(buf), "%d -------------------", n_packet++);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "avpkt->pts: %lld", avpkt.pts);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "avpkt->dts: %lld", avpkt.dts);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "%d -------------------", n_packet++);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->pts: %lld", avpkt.pts);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->dts: %lld", avpkt.dts);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
 				while (avpkt.size > 0) {
-//					n_frame = i % (QUEUE_SIZE+1);
 //clock_gettime(CLOCK_MONOTONIC, &start);
 					//Decode video frame
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
 //clock_gettime(CLOCK_MONOTONIC, &t2);
 //time = timespecDiff(&t2, &start);
-//snprintf(buf, sizeof(buf), "decode time: %llu ms", time);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "decode time: %llu ms", time);
 					if (len < 0) {
-						//__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error in video decoding.");
+						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in video decoding");
 						break;
 					}
 					pthread_mutex_lock(&mutex);
@@ -229,7 +221,9 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 					}
 					//Did we get a video frame?
 					if (got_picture) {
-						decoded_frame = frame_manager->get_decoded_frame_buffer(current_width, current_width);
+						current_width = pDecodecCtxVideo->width;
+						current_height = pDecodecCtxVideo->height;
+						decoded_frame = frame_manager->get_decoded_frame_buffer(current_width, current_height);
 
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(current_width,
@@ -254,8 +248,7 @@ snprintf(buf, sizeof(buf), "avpkt->size: %d", avpkt.size);
 //clock_gettime(CLOCK_MONOTONIC, &end);
 //time = timespecDiff(&end, &start);
 //total_time += time;
-//snprintf(buf, sizeof(buf), "time: %llu ms; average: %llu ms", time, total_time/i);
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, buf);
+//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time: %llu ms; average: %llu ms", time, total_time/i);
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
@@ -278,10 +271,9 @@ end:
 		avcodec_close(pDecodecCtxVideo);
 
 	//Close the video file
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Close the context...");
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Close the context...");
 	close_context(pFormatCtx);
-	//__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "ok");
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 
 	return ret;
 }
-
