@@ -10,7 +10,7 @@ typedef struct DecodedFrame {
 
 typedef struct FrameManager {
 	enum PixelFormat pix_fmt;
-	void (*put_video_frame_rx)(uint8_t *data, int with, int height, int nframe);
+	void (*put_video_frame_rx)(uint8_t *data, int width, int height, int nframe);
 	DecodedFrame* (*get_decoded_frame_buffer)(int width, int height);
 	void (*release_decoded_frame_buffer)(void);
 } FrameManager;
