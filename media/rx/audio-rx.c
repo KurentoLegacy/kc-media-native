@@ -21,6 +21,7 @@
  * 
  */
 
+#include "audio-rx.h"
 #include <init-media.h>
 #include <socket-manager.h>
 
@@ -29,8 +30,6 @@
 #include "libavformat/avformat.h"
 
 #include "sdp-manager.h"
-
-typedef void (*put_audio_samples_rx)(uint8_t*, int, int);
 
 static char buf[256]; //Log
 static char* LOG_TAG = "NDK-audio-rx";
