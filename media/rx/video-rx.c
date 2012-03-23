@@ -133,7 +133,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	// Find the decoder for the video stream
 	pDecodecVideo = avcodec_find_decoder(pDecodecCtxVideo->codec_id);
 	if (pDecodecVideo == NULL) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Unsupported codec");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Unsupported video codec");
 		ret = -5; // Codec not found
 		goto end;
 	}
@@ -225,7 +225,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 			avpkt.data = avpkt_data_init;
 			av_free_packet(&avpkt);
 		}
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
 
 	ret = 0;
