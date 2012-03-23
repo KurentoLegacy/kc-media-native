@@ -42,19 +42,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int receive = 0;
 static int sws_flags = SWS_BICUBIC;
 
-/*
-enum {
-	QUEUE_SIZE = 1, // FIXME: Coupled with VideoRecorderComponent
-};
-*/
-/*
-typedef struct DecodedFrame {
-	AVFrame* pFrameRGB;
-	jintArray out_buffer_video;
-	uint8_t *buffer;
-} DecodedFrame;
-*/
-
 int
 stop_video_rx() {
 	pthread_mutex_lock(&mutex);
@@ -70,29 +57,21 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	AVCodecContext *pDecodecCtxVideo = NULL;
 	AVCodec *pDecodecVideo = NULL;
 	AVFrame *pFrame = NULL;
-//	DecodedFrame decoded_frames[QUEUE_SIZE+1];
 	DecodedFrame *decoded_frame;
 
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
 
-	int i, j, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
+	int i, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
-	int n_packet; //, n_frame;
-	
+	int n_packet;
+
 	struct SwsContext *img_convert_ctx;
 
-	struct timespec start, end, t2;
-	uint64_t time;
-	uint64_t total_time = 0;
+//	struct timespec start, end, t2;
+//	uint64_t time;
+//	uint64_t total_time = 0;
 
-/*	// Init buffers
-	for (i=0; i<QUEUE_SIZE+1; i++) {
-		decoded_frames[i].pFrameRGB = NULL;
-		decoded_frames[i].out_buffer_video = NULL;
-		decoded_frames[i].buffer = NULL;
-	}
-*/
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", sdp);
 
 	if ((ret = init_media()) != 0) {
@@ -169,15 +148,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	//Allocate video frame
 	pFrame = avcodec_alloc_frame();
 
-/*	//Allocate AVFrames structures
-	for (i=0; i<QUEUE_SIZE+1; i++) {
-		decoded_frames[i].pFrameRGB = avcodec_alloc_frame();
-		if (decoded_frames[i].pFrameRGB == NULL) {
-			ret = -7;
-			goto end;
-		}
-	}
-*/
 	picture_nbytes = 0;
 
 	current_width = -1;
@@ -241,7 +211,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 						frame_manager->put_video_frame_rx(decoded_frame->buffer, current_width, current_height, i);
 					}
 					pthread_mutex_unlock(&mutex);
-					
+
 					avpkt.size -= len;
 					avpkt.data += len;
 					i++;
@@ -255,7 +225,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 			avpkt.data = avpkt_data_init;
 			av_free_packet(&avpkt);
 		}
-//__android_log_write(ANDROID_LOG_INFO, LOG_TAG, "next");
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
 
 	ret = 0;
