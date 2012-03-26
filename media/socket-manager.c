@@ -128,14 +128,16 @@ static void free_connection(URLContext *urlContext) {
 	if (pAudioFormatCtx && pAudioFormatCtx->pb && (urlContext
 			== pAudioFormatCtx->pb->opaque) && (--nAudio == 0)) {
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pAudioFormatCtx");
-		av_free(pAudioFormatCtx);
+		avio_close(pAudioFormatCtx->pb);
+		avformat_free_context(pAudioFormatCtx);
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pAudioFormatCtx = NULL;
 	}
 	if (pVideoFormatCtx && pVideoFormatCtx->pb && (urlContext
 			== pVideoFormatCtx->pb->opaque) && (--nVideo == 0)) {
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pVideoFormatCtx");
-		av_free(pVideoFormatCtx);
+		avio_close(pVideoFormatCtx->pb);
+		avformat_free_context(pVideoFormatCtx);
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pVideoFormatCtx = NULL;
 	}
