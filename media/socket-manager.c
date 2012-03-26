@@ -35,6 +35,7 @@ enum {
 };
 
 static char* LOG_TAG = "NDK-socket-manager";
+static char buf[256];
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static sem_t sem;
@@ -50,6 +51,8 @@ static int nVideo;
 
 static URLContext*
 get_connection(int media_type, int port) {
+	int ret;
+
 	URLContext *urlContext = NULL;
 	AVFormatContext *s = NULL;
 
@@ -92,9 +95,10 @@ get_connection(int media_type, int port) {
 			media_log(MEDIA_LOG_ERROR, LOG_TAG,
 					"Memory error: Could not alloc context");
 			s = NULL;
-		} else if (avio_open(&s->pb, rtp, AVIO_RDWR) < 0) {
+		} else if ((ret = avio_open(&s->pb, rtp, AVIO_RDWR)) < 0) {
+			av_strerror(ret, buf, sizeof(buf));
 			media_log(MEDIA_LOG_ERROR, LOG_TAG,
-					"Could not open 'rtp://0.0.0.0:0'");
+					"Could not open '%s': %s", rtp, buf);
 			av_free(s);
 			s = NULL;
 		}
@@ -219,6 +223,8 @@ int
 take_audio_local_port(int audioPort) {
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "takeAudioLocalPort Port: %d", audioPort);
 	URLContext *urlContext = get_audio_connection(audioPort);
+	if (!urlContext)
+		return -1;
 	return rtp_get_local_rtp_port(urlContext);
 }
 
@@ -248,6 +254,8 @@ int
 take_video_local_port (int videoPort) {
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "takeVideoLocalPort Port: %d", videoPort);
 	URLContext *urlContext = get_video_connection(videoPort);
+	if (!urlContext)
+		return -1;
 	return rtp_get_local_rtp_port(urlContext);
 }
 
