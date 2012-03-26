@@ -32,8 +32,8 @@
 
 #include "sdp-manager.h"
 
-static char buf[256]; //Log
-static char* LOG_TAG = "NDK-audio-rx";
+static char buf[256];
+static char* LOG_TAG = "media-audio-rx";
 
 enum {
 	DATA_SIZE = (AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2,

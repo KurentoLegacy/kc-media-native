@@ -42,7 +42,7 @@
 		libavcodec/api-example.c
 */
 
-static char* LOG_TAG = "NDK-audio-tx";
+static char* LOG_TAG = "media-audio-tx";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 //static int sws_flags = SWS_BICUBIC;

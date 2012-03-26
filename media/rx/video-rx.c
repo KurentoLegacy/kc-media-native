@@ -35,8 +35,8 @@
 
 #include <util/utils.h>
 
-static char buf[256]; //Log
-static char* LOG_TAG = "NDK-video-rx";
+static char buf[256];
+static char* LOG_TAG = "media-video-rx";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int receive = 0;

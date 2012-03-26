@@ -30,7 +30,7 @@
 
 #include "libavformat/rtsp.h"
 
-static char* LOG_TAG = "NDK-socket-manager";
+static char* LOG_TAG = "media-socket-manager";
 static char buf[256];
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
