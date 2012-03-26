@@ -66,7 +66,7 @@ static int rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
 							rtsp_st->dynamic_handler);
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -75,39 +75,35 @@ static int my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap, const 
 {
 	RTSPState *rt = s->priv_data;
 	RTSPStream *rtsp_st;
+	URLContext *urlContext;
 	int size, i, err;
 	char *content;
 	char url[1024];
-	
+
 	if (!ff_network_init())
 		return AVERROR(EIO);
-	
+
 	content = (char*)sdp_str;
 	size = strlen(sdp_str);
 	if (size <= 0)
 		return AVERROR_INVALIDDATA;
-	
+
 	err = ff_sdp_parse(s, content);
 	if (err) goto fail;
 
 	/* open each RTP stream */
 	for (i = 0; i < rt->nb_rtsp_streams; i++) {
 		rtsp_st = rt->rtsp_streams[i];
-		ff_url_join(url, sizeof(url), "rtp", NULL,
-				"", rtsp_st->sdp_port,
-				"?localport=%d&ttl=%d", rtsp_st->sdp_port,
-				rtsp_st->sdp_ttl);
-		
-		URLContext *urlContext = get_connection_by_local_port(rtsp_st->sdp_port);
-		if (urlContext)
-			rtsp_st->rtp_handle = urlContext;
-		else if ( (err = ffurl_open(&rtsp_st->rtp_handle, url, AVIO_RDWR)) < 0)
- 			goto fail;
+		urlContext = get_connection_by_local_port(rtsp_st->sdp_port,
+					rtsp_st->dynamic_handler->codec_type);
+		if (!urlContext)
+			return AVERROR(EIO);
+		rtsp_st->rtp_handle = urlContext;
 		if ((err = rtsp_open_transport_ctx(s, rtsp_st)))
 			goto fail;
 	}
 	return 0;
-	
+
 fail:
 	ff_rtsp_close_streams(s);
 	ff_network_close();
@@ -183,7 +179,7 @@ int av_open_input_sdp(AVFormatContext **ic_ptr, const char *sdp_str, AVFormatPar
 {
 	int err;
 	AVInputFormat *fmt = NULL;
-	
+
 	fmt = av_find_input_format("sdp");
 	
 	/* if still no format found, error */
@@ -191,10 +187,11 @@ int av_open_input_sdp(AVFormatContext **ic_ptr, const char *sdp_str, AVFormatPar
 		err = AVERROR_INVALIDDATA;
 		goto fail;
 	}
-	
+
 	err = my_av_open_input_stream(ic_ptr, sdp_str, fmt, ap);
 	if (err)
 		goto fail;
+
 	return 0;
 fail:
 	if (ap && ap->prealloced_context)

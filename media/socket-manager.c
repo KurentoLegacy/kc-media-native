@@ -30,10 +30,6 @@
 
 #include "libavformat/rtsp.h"
 
-enum {
-	AUDIO, VIDEO,
-};
-
 static char* LOG_TAG = "NDK-socket-manager";
 static char buf[256];
 
@@ -50,7 +46,7 @@ static AVFormatContext *pVideoFormatCtx;
 static int nVideo;
 
 static URLContext*
-get_connection(int media_type, int port) {
+get_connection(enum AVMediaType media_type, int port) {
 	int ret;
 
 	URLContext *urlContext = NULL;
@@ -77,9 +73,9 @@ get_connection(int media_type, int port) {
 		n_blocked--;
 	}
 
-	if (media_type == AUDIO)
+	if (media_type == AVMEDIA_TYPE_AUDIO)
 		s = pAudioFormatCtx;
-	else if (media_type == VIDEO)
+	else if (media_type == AVMEDIA_TYPE_VIDEO)
 		s = pVideoFormatCtx;
 
 	if (!s) {
@@ -106,10 +102,10 @@ get_connection(int media_type, int port) {
 
 	if (s && s->pb) {
 		urlContext = s->pb->opaque;
-		if (media_type == AUDIO) {
+		if (media_type == AVMEDIA_TYPE_AUDIO) {
 			pAudioFormatCtx = s;
 			nAudio++;
-		} else if (media_type == VIDEO) {
+		} else if (media_type == AVMEDIA_TYPE_VIDEO) {
 			pVideoFormatCtx = s;
 			nVideo++;
 		}
@@ -193,7 +189,7 @@ void close_context(AVFormatContext *s) {
 }
 
 URLContext*
-get_connection_by_local_port(int local_port) {
+get_connection_by_local_port(int local_port, enum AVMediaType media_type) {
 	URLContext *urlContext = NULL;
 
 	pthread_mutex_lock(&mutex);
@@ -209,6 +205,10 @@ get_connection_by_local_port(int local_port) {
 	}
 
 	pthread_mutex_unlock(&mutex);
+
+	if (!urlContext)
+		urlContext = get_connection(media_type, local_port);
+
 	return urlContext;
 }
 
@@ -216,7 +216,7 @@ get_connection_by_local_port(int local_port) {
 
 URLContext*
 get_audio_connection(int audioPort) {
-	return get_connection(AUDIO, audioPort);
+	return get_connection(AVMEDIA_TYPE_AUDIO, audioPort);
 }
 
 int
@@ -247,7 +247,7 @@ release_audio_local_port () {
 
 URLContext*
 get_video_connection(int videoPort) {
-	return get_connection(VIDEO, videoPort);
+	return get_connection(AVMEDIA_TYPE_VIDEO, videoPort);
 }
 
 int
