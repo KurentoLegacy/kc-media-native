@@ -4,9 +4,6 @@
 [submodule "external/opencore-amr"]
 	path = external/opencore-amr
 	url = ../opencore-amr
-[submodule "external/gas-preprocessor"]
-	path = external/gas-preprocessor
-	url = ../gas-preprocessor
 [submodule "external/x264"]
 	path = external/x264
 	url = ../x264
