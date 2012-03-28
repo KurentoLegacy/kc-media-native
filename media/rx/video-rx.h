@@ -6,6 +6,7 @@
 typedef struct DecodedFrame {
 	AVFrame* pFrameRGB;
 	uint8_t *buffer;
+	void *priv_data; /* User private data */
 } DecodedFrame;
 
 typedef struct FrameManager {
