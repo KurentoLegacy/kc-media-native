@@ -15,8 +15,8 @@ typedef enum _MediaLogLevel {
 	MEDIA_LOG_FATAL,
 } MediaLogLevel;
 
-void media_log(int level, const char *tag, const char *fmt, ...);
-void media_vlog(int level, const char *tag, const char *fmt, va_list vl);
+void media_log(MediaLogLevel level, const char *tag, const char *fmt, ...);
+void media_vlog(MediaLogLevel level, const char *tag, const char *fmt, va_list vl);
 void media_log_set_callback(void (*callback)(MediaLogLevel level, const char *tag,
 						const char *fmt, va_list vargs));
 
