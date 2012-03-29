@@ -229,7 +229,7 @@ take_audio_local_port(int audioPort) {
 }
 
 int
-release_audio_local_port () {
+release_audio_local_port() {
 	int ret;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseAudioLocalPort");
@@ -251,7 +251,7 @@ get_video_connection(int videoPort) {
 }
 
 int
-take_video_local_port (int videoPort) {
+take_video_local_port(int videoPort) {
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "takeVideoLocalPort Port: %d", videoPort);
 	URLContext *urlContext = get_video_connection(videoPort);
 	if (!urlContext)
@@ -260,7 +260,7 @@ take_video_local_port (int videoPort) {
 }
 
 int
-release_video_local_port () {
+release_video_local_port() {
 	int ret;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseVideoLocalPort");
