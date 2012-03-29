@@ -94,8 +94,7 @@ static int my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap, const 
 	/* open each RTP stream */
 	for (i = 0; i < rt->nb_rtsp_streams; i++) {
 		rtsp_st = rt->rtsp_streams[i];
-		urlContext = get_connection_by_local_port(rtsp_st->sdp_port,
-					rtsp_st->dynamic_handler->codec_type);
+		urlContext = get_connection_by_local_port(rtsp_st->sdp_port);
 		if (!urlContext)
 			return AVERROR(EIO);
 		rtsp_st->rtp_handle = urlContext;
