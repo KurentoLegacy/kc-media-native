@@ -173,7 +173,7 @@ int n_packet = 0;
 					//Decode audio frame
 					//FIXME: do not reuse outbuf.
 					out_size = DATA_SIZE;
-					len = avcodec_decode_audio3(pDecodecCtxAudio, (int16_t *) outbuf, &out_size, &avpkt);
+					len = avcodec_decode_audio3(pDecodecCtxAudio, (int16_t*)outbuf, &out_size, &avpkt);
 					if (len < 0) {
 						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in audio decoding.");
 						break;
