@@ -6,13 +6,17 @@
 typedef struct DecodedFrame {
 	AVFrame* pFrameRGB;
 	uint8_t *buffer;
+	int width;
+	int height;
+	AVRational time_base;
+	uint64_t pts;
+	int64_t start_time;
 	void *priv_data; /* User private data */
 } DecodedFrame;
 
 typedef struct FrameManager {
 	enum PixelFormat pix_fmt;
-	void (*put_video_frame_rx)(DecodedFrame* decoded_frame,
-					int width, int height, int nframe);
+	void (*put_video_frame_rx)(DecodedFrame* decoded_frame);
 	DecodedFrame* (*get_decoded_frame)(int width, int height);
 	void (*release_decoded_frame)(void);
 } FrameManager;
