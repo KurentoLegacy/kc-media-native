@@ -60,6 +60,7 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
 	uint8_t outbuf[DATA_SIZE];
+	DecodedAudioSamples decoded_samples, *ds = &decoded_samples;
 
 	int i, ret, audioStream, out_size, len;
 
@@ -185,7 +186,12 @@ int n_packet = 0;
 						break;
 					}
 					if (out_size > 0) {
-						callback(outbuf, out_size, i);
+						ds->samples = outbuf;
+						ds->size = out_size;
+						ds->time_base = pFormatCtx->streams[audioStream]->time_base;
+						ds->pts = avpkt.pts;
+						ds->start_time = pFormatCtx->streams[audioStream]->start_time;
+						callback(ds);
 					}
 					pthread_mutex_unlock(&mutex);
 					
