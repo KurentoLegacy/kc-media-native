@@ -65,6 +65,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	int i, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
 	int n_packet;
+	int64_t rx_time;
 
 	struct SwsContext *img_convert_ctx;
 
@@ -166,6 +167,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		}
 		pthread_mutex_unlock(&mutex);
 		if (av_read_frame(pFormatCtx, &avpkt) >= 0) {
+			rx_time = av_gettime() / 1000;
 			avpkt_data_init = avpkt.data;
 			//Is this a avpkt from the video stream?
 			if (avpkt.stream_index == videoStream) {
@@ -173,6 +175,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->pts: %lld", avpkt.pts);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->dts: %lld", avpkt.dts);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rx_time: %lld", rx_time);
 				while (avpkt.size > 0) {
 //clock_gettime(CLOCK_MONOTONIC, &start);
 					//Decode video frame
@@ -213,6 +216,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 						decoded_frame->time_base = pFormatCtx->streams[videoStream]->time_base;
 						decoded_frame->pts = avpkt.pts;
 						decoded_frame->start_time = pFormatCtx->streams[videoStream]->start_time;
+						decoded_frame->rx_time = rx_time;
 						frame_manager->put_video_frame_rx(decoded_frame);
 					}
 					pthread_mutex_unlock(&mutex);

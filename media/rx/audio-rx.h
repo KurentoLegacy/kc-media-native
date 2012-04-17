@@ -10,6 +10,7 @@ typedef struct DecodedAudioSamples {
 	AVRational time_base;
 	uint64_t pts;
 	int64_t start_time;
+	int64_t rx_time;
 	void *priv_data; /* User private data */
 } DecodedAudioSamples;
 

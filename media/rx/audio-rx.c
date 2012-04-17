@@ -63,6 +63,7 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 	DecodedAudioSamples decoded_samples, *ds = &decoded_samples;
 
 	int i, ret, audioStream, out_size, len;
+	int64_t rx_time;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", sdp);
 
@@ -160,6 +161,7 @@ int n_packet = 0;
 		pthread_mutex_unlock(&mutex);
 
 		if (av_read_frame(pFormatCtx, &avpkt) >= 0) {
+			rx_time = av_gettime() / 1000;
 			avpkt_data_init = avpkt.data;
 			//Is this a avpkt from the audio stream?
 			if (avpkt.stream_index == audioStream) {
@@ -169,6 +171,7 @@ int n_packet = 0;
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "dts/size: %lld", avpkt.dts / avpkt.size);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time: %lld s", avpkt.dts / pDecodecCtxAudio->sample_rate);
+				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rx_time: %lld", rx_time);
 
 				while (avpkt.size > 0) {
 					//Decode audio frame
@@ -191,6 +194,7 @@ int n_packet = 0;
 						ds->time_base = pFormatCtx->streams[audioStream]->time_base;
 						ds->pts = avpkt.pts;
 						ds->start_time = pFormatCtx->streams[audioStream]->start_time;
+						ds->rx_time = rx_time;
 						callback(ds);
 					}
 					pthread_mutex_unlock(&mutex);
