@@ -47,7 +47,6 @@ static int sws_flags = SWS_BICUBIC;
 
 enum {
 	OUTBUF_SIZE = 800*1024,
-	SRC_PIX_FMT = PIX_FMT_NV21,
 };
 
 //Coupled with Java
@@ -368,7 +367,8 @@ end:
 /**
  * see ffmpeg.c
  */
-static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, int srcHeight)
+static int write_video_frame(AVFormatContext *oc, AVStream *st,
+			enum PixelFormat pix_fmt, int srcWidth, int srcHeight)
 {
 	int out_size, ret;
 	AVCodecContext *c;
@@ -377,7 +377,7 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 	c = st->codec;
 	
 	img_convert_ctx = sws_getContext(srcWidth, srcHeight,
-					SRC_PIX_FMT,
+					pix_fmt,
 					c->width, c->height,
 					c->pix_fmt,
 					sws_flags, NULL, NULL, NULL);
@@ -428,7 +428,8 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 }
 
 int
-put_video_frame_tx(uint8_t* frame, int width, int height) {
+put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame, int width, int height)
+{
 	int ret;
 	uint8_t *picture2_buf;
 	int size;
@@ -446,9 +447,9 @@ put_video_frame_tx(uint8_t* frame, int width, int height) {
 			video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
 
 	//Asociamos el frame a tmp_picture por si el pix_fmt es distinto de PIX_FMT_YUV420P
-	avpicture_fill((AVPicture *)tmp_picture, frame, SRC_PIX_FMT, width, height);
+	avpicture_fill((AVPicture *)tmp_picture, frame, pix_fmt, width, height);
 
-	if (write_video_frame(oc, video_st,  width, height) < 0) {
+	if (write_video_frame(oc, video_st, pix_fmt, width, height) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
 		ret = -2;
 		goto end;
