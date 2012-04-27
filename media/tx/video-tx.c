@@ -245,7 +245,6 @@ init_video_tx(const char* outfile, int width, int height, int frame_rate_num, in
 	URLContext *urlContext;
 
 	pthread_mutex_lock(&mutex);
-	fprintf(stderr, "fprintf test\n");
 
 #ifndef USE_X264
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
