@@ -363,11 +363,18 @@ end:
 ////////////////////////////////////////////////////////////////////////////////////////
 //PUT VIDEO FRAME
 
+static int64_t
+get_pts(int64_t time, AVRational clock_rate)
+{
+	return (time * clock_rate.den) / (clock_rate.num * 1000);
+}
+
 /**
  * see ffmpeg.c
  */
 static int write_video_frame(AVFormatContext *oc, AVStream *st,
-			enum PixelFormat pix_fmt, int srcWidth, int srcHeight)
+			enum PixelFormat pix_fmt, int srcWidth, int srcHeight,
+			int64_t time)
 {
 	int out_size, ret;
 	AVCodecContext *c;
@@ -406,7 +413,7 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 			AVPacket pkt;
 			av_init_packet(&pkt);
 			if (c->coded_frame->pts != AV_NOPTS_VALUE)
-				pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, st->time_base);
+				pkt.pts = get_pts(time, st->time_base);
 			if(c->coded_frame->key_frame)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= st->index;
@@ -427,7 +434,8 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 }
 
 int
-put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame, int width, int height)
+put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame,
+					int width, int height, int64_t time)
 {
 	int ret;
 	uint8_t *picture2_buf;
@@ -448,7 +456,7 @@ put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame, int width, int heig
 	//Asociamos el frame a tmp_picture por si el pix_fmt es distinto de PIX_FMT_YUV420P
 	avpicture_fill((AVPicture *)tmp_picture, frame, pix_fmt, width, height);
 
-	if (write_video_frame(oc, video_st, pix_fmt, width, height) < 0) {
+	if (write_video_frame(oc, video_st, pix_fmt, width, height, time) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
 		ret = -2;
 		goto end;
