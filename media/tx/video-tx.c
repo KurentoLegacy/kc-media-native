@@ -143,8 +143,9 @@ static int open_video(AVFormatContext *oc, AVStream *st)
  * add a video output stream
  * see new_video_stream in ffmpeg.c
  */
-static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id, int width, int height,
-				int frame_rate_num, int frame_rate_den, int bit_rate, int gop_size)
+static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id,
+		int width, int height, int frame_rate_num, int frame_rate_den,
+						int bit_rate, int gop_size)
 {
 	AVCodecContext *c;
 	AVStream *st;
@@ -239,8 +240,10 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id, in
 }
 
 int
-init_video_tx(const char* outfile, int width, int height, int frame_rate_num, int frame_rate_den,
-			int bit_rate, int gop_size, int codecId, int payload_type) {
+init_video_tx(const char* outfile, int width, int height,
+			int frame_rate_num, int frame_rate_den,
+			int bit_rate, int gop_size, int codecId, int payload_type)
+{
 	int ret;
 	URLContext *urlContext;
 
@@ -480,7 +483,8 @@ static void close_video(AVFormatContext *oc, AVStream *st)
 
 
 int
-finish_video_tx() {
+finish_video_tx()
+{
 	int i;
 	/* write the trailer, if any.  the trailer must be written
 	* before you close the CodecContexts open when you wrote the
