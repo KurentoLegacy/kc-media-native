@@ -363,12 +363,6 @@ end:
 ////////////////////////////////////////////////////////////////////////////////////////
 //PUT VIDEO FRAME
 
-static int64_t
-get_pts(int64_t time, AVRational clock_rate)
-{
-	return (time * clock_rate.den) / (clock_rate.num * 1000);
-}
-
 /**
  * see ffmpeg.c
  */
@@ -412,8 +406,7 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 		if (out_size > 0) {
 			AVPacket pkt;
 			av_init_packet(&pkt);
-			if (c->coded_frame->pts != AV_NOPTS_VALUE)
-				pkt.pts = get_pts(time, st->time_base);
+			pkt.pts = get_pts(time, st->time_base);
 			if(c->coded_frame->key_frame)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= st->index;
