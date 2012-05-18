@@ -238,11 +238,11 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
 
-	set_interrrupt_cb(0);
-
 	ret = 0;
 
 end:
+	set_interrrupt_cb(0);
+
 	frame_manager->release_decoded_frame();
 
 	//Free the YUV frame

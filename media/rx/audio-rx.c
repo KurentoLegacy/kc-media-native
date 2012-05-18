@@ -212,11 +212,11 @@ int n_packet = 0;
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
 
-	set_interrrupt_cb(1);
-
 	ret = 0;
 
 end:
+	set_interrrupt_cb(0);
+
 	//Close the codec
 	if (pDecodecCtxAudio)
 		avcodec_close(pDecodecCtxAudio);
