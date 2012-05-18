@@ -46,6 +46,7 @@ int
 stop_video_rx() {
 	pthread_mutex_lock(&mutex);
 	receive = 0;
+	set_interrrupt_cb(1);
 	pthread_mutex_unlock(&mutex);
 	return 0;
 }
@@ -236,6 +237,8 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		}
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
+
+	set_interrrupt_cb(0);
 
 	ret = 0;
 

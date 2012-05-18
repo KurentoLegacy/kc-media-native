@@ -46,6 +46,7 @@ int
 stop_audio_rx() {
 	pthread_mutex_lock(&mutex);
 	receive = 0;
+	set_interrrupt_cb(1);
 	pthread_mutex_unlock(&mutex);
 	return 0;
 }
@@ -210,6 +211,8 @@ int n_packet = 0;
 		}
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
+
+	set_interrrupt_cb(1);
 
 	ret = 0;
 

@@ -26,7 +26,9 @@
 #include <pthread.h>
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mutex_interrupt = PTHREAD_MUTEX_INITIALIZER;
 static int initialized = 0;
+static int interrupt = 0;
 
 /*
 	see	libavutil/log.c
@@ -88,8 +90,27 @@ lockmgr(void **mtx, enum AVLockOp op) {
 	return 1;
 }
 
+//FIXME: for newer ffmpeg versions use AVIOInterruptCB
+static int
+media_interrupt_cb(void)
+{
+	int ret;
+	pthread_mutex_lock(&mutex_interrupt);
+	ret = interrupt;
+	pthread_mutex_unlock(&mutex_interrupt);
+	return ret;
+}
+
+void
+set_interrrupt_cb(int i)
+{
+	pthread_mutex_lock(&mutex_interrupt);
+	interrupt = i;
+	pthread_mutex_unlock(&mutex_interrupt);
+}
+
 int
-init_media() {
+init_media(void) {
 	int ret = 0;
 	
 	pthread_mutex_lock(&mutex);
@@ -97,6 +118,7 @@ init_media() {
 		av_log_set_callback(media_av_log);
 		av_register_all();
 		ret = av_lockmgr_register(lockmgr);
+		avio_set_interrupt_cb(media_interrupt_cb);
 		initialized++;
 	}
 	pthread_mutex_unlock(&mutex);

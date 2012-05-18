@@ -3,6 +3,7 @@
 
 #include "libavformat/avformat.h"
 
-int init_media();
+void set_interrrupt_cb(int i);
+int init_media(void);
 
 #endif /* __INIT_MEDIA_H__ */
