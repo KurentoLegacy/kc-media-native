@@ -204,15 +204,9 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 
 end:
 	set_interrrupt_cb(0);
-
-	//Close the codec
 	if (pDecodecCtxAudio)
 		avcodec_close(pDecodecCtxAudio);
-	
-	//Close the audio file
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Close the context...");
 	close_context(pFormatCtx);
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 
 	return ret;
 }

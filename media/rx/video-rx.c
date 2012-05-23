@@ -229,18 +229,11 @@ end:
 	set_interrrupt_cb(0);
 
 	frame_manager->release_decoded_frame();
-
-	//Free the YUV frame
 	av_free(pFrame);
 
-	//Close the codec
 	if (pDecodecCtxVideo)
 		avcodec_close(pDecodecCtxVideo);
-
-	//Close the video file
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Close the context...");
 	close_context(pFormatCtx);
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 
 	return ret;
 }
