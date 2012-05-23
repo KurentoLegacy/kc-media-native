@@ -70,9 +70,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 
 	struct SwsContext *img_convert_ctx;
 
-//	struct timespec start, end, t2;
-//	uint64_t time;
-//	uint64_t total_time = 0;
+	int64_t start, end, t2, time, total_time;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", sdp);
 
@@ -159,6 +157,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 
 	i = 0;
 	n_packet = 0;
+	total_time = 0;
 
 	//READING THE DATA
 	for(;;) {
@@ -179,12 +178,11 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rx_time: %lld", rx_time);
 				while (avpkt.size > 0) {
-//clock_gettime(CLOCK_MONOTONIC, &start);
+start = av_gettime() / 1000;
 					//Decode video frame
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
-//clock_gettime(CLOCK_MONOTONIC, &t2);
-//time = timespecDiff(&t2, &start);
-//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "decode time: %llu ms", time);
+t2 = av_gettime() / 1000;
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "decode time: %llu ms", (t2-start));
 					if (len < 0) {
 						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in video decoding");
 						break;
@@ -198,7 +196,10 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 					if (got_picture) {
 						current_width = pDecodecCtxVideo->width;
 						current_height = pDecodecCtxVideo->height;
+int64_t td1 = av_gettime() / 1000;
 						decoded_frame = frame_manager->get_decoded_frame(current_width, current_height);
+int64_t td2 = av_gettime() / 1000;
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "get_decoded_frame time: %llu ms", (td2-td1));
 						if (!decoded_frame) {
 							pthread_mutex_unlock(&mutex);
 							break;
@@ -230,10 +231,10 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 					avpkt.size -= len;
 					avpkt.data += len;
 					i++;
-//clock_gettime(CLOCK_MONOTONIC, &end);
-//time = timespecDiff(&end, &start);
-//total_time += time;
-//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time: %llu ms; average: %llu ms", time, total_time/i);
+end = av_gettime() / 1000;
+time = end - start;
+total_time += time;
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time: %llu ms; average: %llu ms", time, total_time/i);
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
