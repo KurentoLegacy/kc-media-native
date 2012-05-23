@@ -133,6 +133,18 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	// Get a pointer to the codec context for the video stream
 	pDecodecCtxVideo = pFormatCtx->streams[videoStream]->codec;
 
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time_base.num: %d", pFormatCtx->streams[videoStream]->time_base.num);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time_base.den: %d", pFormatCtx->streams[videoStream]->time_base.den);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "start_time: %lld", pFormatCtx->streams[videoStream]->start_time);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "duration: %lld", pFormatCtx->streams[videoStream]->duration);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "r_frame_rate.num: %d", pFormatCtx->streams[videoStream]->r_frame_rate.num);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "r_frame_rate.den: %d", pFormatCtx->streams[videoStream]->r_frame_rate.den);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avg_frame_rate.num: %d", pFormatCtx->streams[videoStream]->avg_frame_rate.num);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avg_frame_rate.den: %d", pFormatCtx->streams[videoStream]->avg_frame_rate.den);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_aspect_ratio.den: %d", pFormatCtx->streams[videoStream]->sample_aspect_ratio.den);
+media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_aspect_ratio.den: %d", pFormatCtx->streams[videoStream]->sample_aspect_ratio.den);
+
+
 	// Find the decoder for the video stream
 	pDecodecVideo = avcodec_find_decoder(pDecodecCtxVideo->codec_id);
 	if (pDecodecVideo == NULL) {
