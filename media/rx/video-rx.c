@@ -173,11 +173,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 			avpkt_data_init = avpkt.data;
 			//Is this a avpkt from the video stream?
 			if (avpkt.stream_index == videoStream) {
-				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "%d -------------------", n_packet++);
-				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->pts: %lld", avpkt.pts);
-				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->dts: %lld", avpkt.dts);
-				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
-				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rx_time: %lld", rx_time);
 				while (avpkt.size > 0) {
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
 					if (len < 0) {
@@ -231,7 +226,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 			avpkt.data = avpkt_data_init;
 			av_free_packet(&avpkt);
 		}
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "next");
 	}
 
 	ret = 0;
