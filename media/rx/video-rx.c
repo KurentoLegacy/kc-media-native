@@ -63,8 +63,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
 
-	int i, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
-	int current_width, current_height;
+	int i, ret, videoStream, len, got_picture;
 	int64_t rx_time;
 
 	struct SwsContext *img_convert_ctx;
@@ -150,12 +149,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	//Allocate video frame
 	pFrame = avcodec_alloc_frame();
 
-	picture_nbytes = 0;
-
-	current_width = -1;
-	current_height = -1;
-	buffer_nbytes = -1;
-
 	//READING THE DATA
 	for(;;) {
 		pthread_mutex_lock(&mutex);
@@ -182,29 +175,28 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 					}
 					//Did we get a video frame?
 					if (got_picture) {
-						current_width = pDecodecCtxVideo->width;
-						current_height = pDecodecCtxVideo->height;
-						decoded_frame = frame_manager->get_decoded_frame(current_width, current_height);
+						decoded_frame = frame_manager->get_decoded_frame(
+									pDecodecCtxVideo->width, pDecodecCtxVideo->height);
 						if (!decoded_frame) {
 							pthread_mutex_unlock(&mutex);
 							break;
 						}
 
 						//Convert the image from its native format to RGB
-						img_convert_ctx = sws_getContext(current_width,
-								current_height, pDecodecCtxVideo->pix_fmt,
-								current_width, current_height, frame_manager->pix_fmt,
+						img_convert_ctx = sws_getContext(pDecodecCtxVideo->width,
+								pDecodecCtxVideo->height, pDecodecCtxVideo->pix_fmt,
+								pDecodecCtxVideo->width, pDecodecCtxVideo->height, frame_manager->pix_fmt,
 								sws_flags, NULL, NULL, NULL);
 						if (img_convert_ctx == NULL) {
 							ret = -9;
 							goto end;
 						}
 						sws_scale(img_convert_ctx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0,
-								current_height, ((AVPicture*) decoded_frame->pFrameRGB)->data,
+								pDecodecCtxVideo->height, ((AVPicture*) decoded_frame->pFrameRGB)->data,
 								((AVPicture*) decoded_frame->pFrameRGB)->linesize);
 						sws_freeContext(img_convert_ctx);
-						decoded_frame->width = current_width;
-						decoded_frame->height = current_height;
+						decoded_frame->width = pDecodecCtxVideo->width;
+						decoded_frame->height = pDecodecCtxVideo->height;
 						decoded_frame->time_base = pFormatCtx->streams[videoStream]->time_base;
 						decoded_frame->pts = avpkt.pts;
 						decoded_frame->start_time = pFormatCtx->streams[videoStream]->start_time;
