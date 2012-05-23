@@ -123,17 +123,6 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 	// Get a pointer to the codec context for the audio stream
 	pDecodecCtxAudio = pFormatCtx->streams[audioStream]->codec;
 
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time_base.num: %d", pFormatCtx->streams[audioStream]->time_base.num);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time_base.den: %d", pFormatCtx->streams[audioStream]->time_base.den);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "start_time: %lld", pFormatCtx->streams[audioStream]->start_time);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "duration: %lld", pFormatCtx->streams[audioStream]->duration);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "r_frame_rate.num: %d", pFormatCtx->streams[audioStream]->r_frame_rate.num);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "r_frame_rate.den: %d", pFormatCtx->streams[audioStream]->r_frame_rate.den);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avg_frame_rate.num: %d", pFormatCtx->streams[audioStream]->avg_frame_rate.num);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avg_frame_rate.den: %d", pFormatCtx->streams[audioStream]->avg_frame_rate.den);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_aspect_ratio.den: %d", pFormatCtx->streams[audioStream]->sample_aspect_ratio.den);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_aspect_ratio.den: %d", pFormatCtx->streams[audioStream]->sample_aspect_ratio.den);
-
 	// Find the decoder for the video stream
 	if(pDecodecCtxAudio->codec_id == CODEC_ID_AMR_NB) {
 		pDecodecAudio = avcodec_find_decoder_by_name("libopencore_amrnb");
