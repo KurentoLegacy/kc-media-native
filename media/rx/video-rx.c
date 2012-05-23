@@ -199,6 +199,10 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 						current_width = pDecodecCtxVideo->width;
 						current_height = pDecodecCtxVideo->height;
 						decoded_frame = frame_manager->get_decoded_frame(current_width, current_height);
+						if (!decoded_frame) {
+							pthread_mutex_unlock(&mutex);
+							break;
+						}
 
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(current_width,
