@@ -65,7 +65,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 
 	int i, ret, videoStream, buffer_nbytes, picture_nbytes, len, got_picture;
 	int current_width, current_height;
-	int n_packet;
 	int64_t rx_time;
 
 	struct SwsContext *img_convert_ctx;
@@ -157,9 +156,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	current_height = -1;
 	buffer_nbytes = -1;
 
-	i = 0;
-	n_packet = 0;
-
 	//READING THE DATA
 	for(;;) {
 		pthread_mutex_lock(&mutex);
@@ -219,7 +215,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 
 					avpkt.size -= len;
 					avpkt.data += len;
-					i++;
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
