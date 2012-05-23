@@ -68,10 +68,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 
 	struct SwsContext *img_convert_ctx;
 
-//	struct timespec start, end, t2;
-//	uint64_t time;
-//	uint64_t total_time = 0;
-
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", sdp);
 
 	if ((ret = init_media()) != 0) {
