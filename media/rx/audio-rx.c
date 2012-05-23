@@ -150,9 +150,6 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 		pDecodecCtxAudio->sample_rate, pDecodecCtxAudio->frame_size,
 		pDecodecCtxAudio->bit_rate);
 
-i = 0;
-int n_packet = 0;
-
 	//READING THE DATA
 	for(;;) {
 		pthread_mutex_lock(&mutex);
@@ -195,7 +192,6 @@ int n_packet = 0;
 					
 					avpkt.size -= len;
 					avpkt.data += len;
-					i++;
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
