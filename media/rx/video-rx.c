@@ -179,12 +179,7 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "avpkt->size: %d", avpkt.size);
 				media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rx_time: %lld", rx_time);
 				while (avpkt.size > 0) {
-//clock_gettime(CLOCK_MONOTONIC, &start);
-					//Decode video frame
 					len = avcodec_decode_video2(pDecodecCtxVideo, pFrame, &got_picture, &avpkt);
-//clock_gettime(CLOCK_MONOTONIC, &t2);
-//time = timespecDiff(&t2, &start);
-//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "decode time: %llu ms", time);
 					if (len < 0) {
 						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in video decoding");
 						break;
@@ -230,10 +225,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 					avpkt.size -= len;
 					avpkt.data += len;
 					i++;
-//clock_gettime(CLOCK_MONOTONIC, &end);
-//time = timespecDiff(&end, &start);
-//total_time += time;
-//media_log(MEDIA_LOG_DEBUG, LOG_TAG, "time: %llu ms; average: %llu ms", time, total_time/i);
 				}
 			}
 			//Free the packet that was allocated by av_read_frame
