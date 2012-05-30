@@ -186,6 +186,7 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 						ds->pts = avpkt.pts;
 						ds->start_time = pFormatCtx->streams[audioStream]->start_time;
 						ds->rx_time = rx_time;
+						ds->encoded_size = len;
 						callback(ds);
 					}
 					pthread_mutex_unlock(&mutex);

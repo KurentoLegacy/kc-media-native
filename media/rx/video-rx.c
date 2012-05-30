@@ -191,12 +191,15 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 								pDecodecCtxVideo->height, ((AVPicture*) decoded_frame->pFrameRGB)->data,
 								((AVPicture*) decoded_frame->pFrameRGB)->linesize);
 						sws_freeContext(img_convert_ctx);
+
 						decoded_frame->width = pDecodecCtxVideo->width;
 						decoded_frame->height = pDecodecCtxVideo->height;
 						decoded_frame->time_base = pFormatCtx->streams[videoStream]->time_base;
 						decoded_frame->pts = avpkt.pts;
 						decoded_frame->start_time = pFormatCtx->streams[videoStream]->start_time;
 						decoded_frame->rx_time = rx_time;
+						decoded_frame->encoded_size = len;
+
 						frame_manager->put_video_frame_rx(decoded_frame);
 					}
 					pthread_mutex_unlock(&mutex);

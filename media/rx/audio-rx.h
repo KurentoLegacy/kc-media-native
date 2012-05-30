@@ -11,6 +11,7 @@ typedef struct DecodedAudioSamples {
 	uint64_t pts;
 	int64_t start_time;
 	int64_t rx_time;
+	int encoded_size;
 	void *priv_data; /* User private data */
 } DecodedAudioSamples;
 
