@@ -54,12 +54,8 @@ enum {
 int VIDEO_CODECS[] = {CODEC_ID_H264, CODEC_ID_MPEG4, CODEC_ID_H263P};
 char* VIDEO_CODEC_NAMES[] = {"h264", "mpeg4", "h263p"};
 
-
-
-//FIXME Tener en cuenta si hay error, que deberemos liberar las estructuras
-
-
 static AVFrame *picture, *tmp_picture;
+static uint8_t *picture_buf;
 static uint8_t *video_outbuf;
 static int video_outbuf_size;
 
@@ -67,30 +63,20 @@ static AVOutputFormat *fmt;
 static AVFormatContext *oc;
 static AVStream *video_st;
 
+static enum PixelFormat _src_pix_fmt;
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //INIT VIDEO
 
-static AVFrame *alloc_picture(enum PixelFormat pix_fmt, int width, int height)
-{
-	AVFrame *picture;
-
-	picture = avcodec_alloc_frame();
-	if (!picture)
-		return NULL;
-	
-	return picture;
-}
-
-
 static int open_video(AVFormatContext *oc, AVStream *st)
 {
-	int ret;
-	
+	int ret, size;
+
 	AVCodec *codec;
 	AVCodecContext *c;
-	
+
 	c = st->codec;
-	
+
 	/* find the video encoder */
 	codec = avcodec_find_encoder(c->codec_id);
 	if (!codec) {
@@ -103,7 +89,6 @@ static int open_video(AVFormatContext *oc, AVStream *st)
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
 		return ret;
 	}
-	
 
 	video_outbuf = NULL;
 	if (!(oc->oformat->flags & AVFMT_RAWPICTURE)) {
@@ -118,24 +103,22 @@ static int open_video(AVFormatContext *oc, AVStream *st)
 	}
 
 	/* allocate the encoded raw picture */
-	picture = alloc_picture(c->pix_fmt, c->width, c->height);
-	
-	
-	
+	picture = avcodec_alloc_frame();
 	if (!picture) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate picture");
 		return -3;
 	}
+	size = avpicture_get_size(c->pix_fmt, c->width, c->height);
+	picture_buf = av_malloc(size);
+	avpicture_fill((AVPicture *)picture, picture_buf,
+			c->pix_fmt, c->width, c->height);
 
-	/* if the output format is not YUV420P, then a temporary YUV420P
-	picture is needed too. It is then converted to the required
-	output format */
-	tmp_picture =  alloc_picture(PIX_FMT_YUV420P, c->width, c->height);
+	tmp_picture =  avcodec_alloc_frame();
 	if (!tmp_picture) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate temporary picture");
 		return -4;
 	}
-	
+
 	return 0;
 }
 
@@ -243,7 +226,8 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id,
 int
 init_video_tx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
-			int bit_rate, int gop_size, int codecId, int payload_type)
+			int bit_rate, int gop_size, int codecId, int payload_type,
+			enum PixelFormat src_pix_fmt)
 {
 	int ret;
 	URLContext *urlContext;
@@ -264,6 +248,9 @@ init_video_tx(const char* outfile, int width, int height,
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
+
+	_src_pix_fmt = src_pix_fmt;
+
 /*	
 	for(i=0; i<AVMEDIA_TYPE_NB; i++){
 		avcodec_opts[i]= avcodec_alloc_context2(i);
@@ -371,17 +358,16 @@ end:
  * see ffmpeg.c
  */
 static int write_video_frame(AVFormatContext *oc, AVStream *st,
-			enum PixelFormat pix_fmt, int srcWidth, int srcHeight,
-			int64_t time)
+			int srcWidth, int srcHeight, int64_t time)
 {
 	int out_size, ret;
 	AVCodecContext *c;
 	struct SwsContext *img_convert_ctx;
 
 	c = st->codec;
-	
+
 	img_convert_ctx = sws_getContext(srcWidth, srcHeight,
-					pix_fmt,
+					_src_pix_fmt,
 					c->width, c->height,
 					c->pix_fmt,
 					sws_flags, NULL, NULL, NULL);
@@ -389,10 +375,12 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Cannot initialize the conversion context");
 		return -1;
 	}
+
 	sws_scale(img_convert_ctx, (const uint8_t* const*)tmp_picture->data, tmp_picture->linesize,
 		0, c->height, picture->data, picture->linesize);
+
 	sws_freeContext(img_convert_ctx);
-	
+
 	if (oc->oformat->flags & AVFMT_RAWPICTURE) {
 		/* raw video case. The API will change slightly in the near
 		futur for that */
@@ -431,12 +419,9 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 }
 
 int
-put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame,
-					int width, int height, int64_t time)
+put_video_frame_tx(uint8_t* frame, int width, int height, int64_t time)
 {
 	int ret;
-	uint8_t *picture2_buf;
-	int size;
 
 	pthread_mutex_lock(&mutex);
 
@@ -445,21 +430,16 @@ put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame,
 		ret = -1;
 		goto end;
 	}
-	size = avpicture_get_size(video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
-	picture2_buf = av_malloc(size);
-	avpicture_fill((AVPicture *)picture, picture2_buf,
-			video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
 
-	//Asociamos el frame a tmp_picture por si el pix_fmt es distinto de PIX_FMT_YUV420P
-	avpicture_fill((AVPicture *)tmp_picture, frame, pix_fmt, width, height);
+	avpicture_fill((AVPicture *)tmp_picture, frame,
+						_src_pix_fmt, width, height);
 
-	if (write_video_frame(oc, video_st, pix_fmt, width, height, time) < 0) {
+	if (write_video_frame(oc, video_st, width, height, time) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
 		ret = -2;
 		goto end;
 	}
 
-	av_free(picture2_buf);
 	ret = 0;
 
 end:
@@ -477,6 +457,7 @@ static void close_video(AVFormatContext *oc, AVStream *st)
 {
 	if (st)
 		avcodec_close(st->codec);
+	av_free(picture_buf);
 	av_free(picture);
 	av_free(tmp_picture);
 	av_free(video_outbuf);
