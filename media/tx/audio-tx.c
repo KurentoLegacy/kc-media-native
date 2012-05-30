@@ -23,6 +23,7 @@
 
 #include "audio-tx.h"
 #include <util/log.h>
+#include <util/utils.h>
 #include <my-cmdutils.h>
 #include <init-media.h>
 #include <socket-manager.h>
