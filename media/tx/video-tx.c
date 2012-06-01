@@ -392,13 +392,14 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 		pkt.size= sizeof(AVPicture);
 		ret = av_interleaved_write_frame(oc, &pkt);
 	} else {
+		picture->pts = get_pts(time, st->time_base);
 		/* encode the image */
 		out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, picture);
 		/* if zero size, it means the image was buffered */
 		if (out_size > 0) {
 			AVPacket pkt;
 			av_init_packet(&pkt);
-			pkt.pts = get_pts(time, st->time_base);
+			pkt.pts = c->coded_frame->pts;
 			if(c->coded_frame->key_frame)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= st->index;
