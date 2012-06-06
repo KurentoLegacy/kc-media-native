@@ -45,6 +45,9 @@ static int nAudio;
 static AVFormatContext *pVideoFormatCtx;
 static int nVideo;
 
+static int can_release_audio = 0;
+static int can_release_video = 0;
+
 static URLContext*
 get_connection(enum AVMediaType media_type, int port) {
 	int ret;
@@ -222,6 +225,11 @@ take_audio_local_port(int audioPort) {
 	URLContext *urlContext = get_audio_connection(audioPort);
 	if (!urlContext)
 		return -1;
+
+	pthread_mutex_lock(&mutex);
+	can_release_audio = 1;
+	pthread_mutex_unlock(&mutex);
+
 	return rtp_get_local_rtp_port(urlContext);
 }
 
@@ -230,11 +238,19 @@ release_audio_local_port() {
 	int ret;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseAudioLocalPort");
+	pthread_mutex_lock(&mutex);
+	if ((nAudio > 0) && !can_release_audio) {
+		pthread_mutex_unlock(&mutex);
+		return -1;
+	}
+	pthread_mutex_unlock(&mutex);
+
 	if (pAudioFormatCtx && pAudioFormatCtx->pb)
 		free_connection(pAudioFormatCtx->pb->opaque);
 
 	pthread_mutex_lock(&mutex);
 	ret = nAudio;
+	can_release_audio = 0;
 	pthread_mutex_unlock(&mutex);
 
 	return ret;
@@ -253,6 +269,11 @@ take_video_local_port(int videoPort) {
 	URLContext *urlContext = get_video_connection(videoPort);
 	if (!urlContext)
 		return -1;
+
+	pthread_mutex_lock(&mutex);
+	can_release_video = 1;
+	pthread_mutex_unlock(&mutex);
+
 	return rtp_get_local_rtp_port(urlContext);
 }
 
@@ -261,11 +282,19 @@ release_video_local_port() {
 	int ret;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "releaseVideoLocalPort");
+	pthread_mutex_lock(&mutex);
+	if ((nVideo > 0) && !can_release_video) {
+		pthread_mutex_unlock(&mutex);
+		return -1;
+	}
+	pthread_mutex_unlock(&mutex);
+
 	if (pVideoFormatCtx && pVideoFormatCtx->pb)
 		free_connection(pVideoFormatCtx->pb->opaque);
 
 	pthread_mutex_lock(&mutex);
 	ret = nVideo;
+	can_release_video = 0;
 	pthread_mutex_unlock(&mutex);
 
 	return ret;
