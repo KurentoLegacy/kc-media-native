@@ -200,7 +200,7 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id,
 
 		//Ensure no default settings
 		c->qmin = 1;
-		c->qmax = 32;
+		c->qmax = 51;
 		c->max_qdiff = 4;
 	}
 
