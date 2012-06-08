@@ -416,6 +416,8 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 
 	if (ret < 0)
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing video frame");
+	else
+		ret = out_size;
 
 	return ret;
 }
@@ -436,13 +438,8 @@ put_video_frame_tx(uint8_t* frame, int width, int height, int64_t time)
 	avpicture_fill((AVPicture *)tmp_picture, frame,
 						_src_pix_fmt, width, height);
 
-	if (write_video_frame(oc, video_st, width, height, time) < 0) {
+	if ((ret=write_video_frame(oc, video_st, width, height, time)) < 0)
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
-		ret = -2;
-		goto end;
-	}
-
-	ret = 0;
 
 end:
 	pthread_mutex_unlock(&mutex);

@@ -265,7 +265,7 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st,
 
 	c = st->codec;
 
-	pkt.size= avcodec_encode_audio(c, audio_outbuf, frame_size, samples);
+	pkt.size = avcodec_encode_audio(c, audio_outbuf, frame_size, samples);
 	
 	pkt.pts= get_pts(time, st->time_base);
 	pkt.flags |= AV_PKT_FLAG_KEY;
@@ -279,14 +279,15 @@ static int write_audio_frame(AVFormatContext *oc, AVStream *st,
 		return ret;
 	}
 
-	return 0;
+	return pkt.size;
 }
 
 int
 put_audio_samples_tx(int16_t* samples, int n_samples, int64_t time) {
-	int i, ret, nframes;
+	int i, ret, nframes, total_size;
 
 	pthread_mutex_lock(&mutex);
+	total_size = 0;
 	if (!oc) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No audio initiated.");
 		ret = -1;
@@ -297,10 +298,12 @@ put_audio_samples_tx(int16_t* samples, int n_samples, int64_t time) {
 	for (i=0; i<nframes; i++) {
 		if( (ret=write_audio_frame(oc, audio_st, &samples[i*frame_size], time)) < 0) {
 			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write audio frame");
-			goto end;
+			break;
 		}
+		total_size += ret;
 	}
-	ret = 0;
+
+	ret = total_size;
 
 end:
 	pthread_mutex_unlock(&mutex);
