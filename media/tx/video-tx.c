@@ -57,7 +57,7 @@ char* VIDEO_CODEC_NAMES[] = {"h264", "mpeg4", "h263p"};
 static AVFrame *picture, *tmp_picture;
 static uint8_t *picture_buf;
 static uint8_t *video_outbuf;
-static int video_outbuf_size;
+static int video_outbuf_size, n_frame;
 
 static AVOutputFormat *fmt;
 static AVFormatContext *oc;
@@ -341,6 +341,7 @@ init_video_tx(const char* outfile, int width, int height,
 	RTPMuxContext *rptmc = oc->priv_data;
 	rptmc->payload_type = payload_type;
 
+	n_frame = 0;
 	ret = 0;
 
 end:
@@ -392,14 +393,14 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st,
 		pkt.size= sizeof(AVPicture);
 		ret = av_interleaved_write_frame(oc, &pkt);
 	} else {
-		picture->pts = get_pts(time, st->time_base);
+		picture->pts = n_frame++;
 		/* encode the image */
 		out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, picture);
 		/* if zero size, it means the image was buffered */
 		if (out_size > 0) {
 			AVPacket pkt;
 			av_init_packet(&pkt);
-			pkt.pts = c->coded_frame->pts;
+			pkt.pts = get_pts(time, st->time_base);
 			if(c->coded_frame->key_frame)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= st->index;
