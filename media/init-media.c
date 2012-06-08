@@ -121,6 +121,7 @@ init_media(void) {
 		avio_set_interrupt_cb(media_interrupt_cb);
 		initialized++;
 	}
+	set_interrrupt_cb(0);
 	pthread_mutex_unlock(&mutex);
 	
 	return ret;

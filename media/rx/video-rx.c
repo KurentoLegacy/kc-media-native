@@ -74,7 +74,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
-	set_interrrupt_cb(0);
 
 	pthread_mutex_lock(&mutex);
 	receive = 1;
@@ -217,8 +216,6 @@ start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager) {
 	ret = 0;
 
 end:
-	set_interrrupt_cb(0);
-
 	frame_manager->release_decoded_frame();
 	av_free(pFrame);
 

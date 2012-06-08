@@ -72,7 +72,6 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
-	set_interrrupt_cb(0);
 	
 	pthread_mutex_lock(&mutex);
 	receive = 1;
@@ -204,7 +203,6 @@ start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback) {
 	ret = 0;
 
 end:
-	set_interrrupt_cb(0);
 	if (pDecodecCtxAudio)
 		avcodec_close(pDecodecCtxAudio);
 	close_context(pFormatCtx);
