@@ -82,13 +82,11 @@ get_connection(enum AVMediaType media_type, int port) {
 		s = pVideoFormatCtx;
 
 	if (!s) {
-		if (port != -1) {
+		if (port != -1)
 			snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0:0?localport=%d", port);
-			media_log(MEDIA_LOG_DEBUG, LOG_TAG, rtp);
-		} else {
+		else
 			snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0:0");
-			media_log(MEDIA_LOG_DEBUG, LOG_TAG, rtp);
-		}
+
 		s = avformat_alloc_context();
 		if (!s) {
 			media_log(MEDIA_LOG_ERROR, LOG_TAG,
@@ -125,33 +123,22 @@ static void free_connection(URLContext *urlContext) {
 
 	pthread_mutex_lock(&mutex);
 
-	media_log(MEDIA_LOG_ERROR, LOG_TAG, "before nAudio: %d", nAudio);
-	media_log(MEDIA_LOG_ERROR, LOG_TAG, "before nVideo: %d", nVideo);
-
 	if (pAudioFormatCtx && pAudioFormatCtx->pb && (urlContext
 			== pAudioFormatCtx->pb->opaque) && (--nAudio == 0)) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pAudioFormatCtx");
 		avio_close(pAudioFormatCtx->pb);
 		avformat_free_context(pAudioFormatCtx);
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pAudioFormatCtx = NULL;
 	}
 	if (pVideoFormatCtx && pVideoFormatCtx->pb && (urlContext
 			== pVideoFormatCtx->pb->opaque) && (--nVideo == 0)) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free pVideoFormatCtx");
 		avio_close(pVideoFormatCtx->pb);
 		avformat_free_context(pVideoFormatCtx);
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free ok");
 		pVideoFormatCtx = NULL;
 	}
 	urlContext = NULL;
 
-	media_log(MEDIA_LOG_ERROR, LOG_TAG, "after nAudio: %d", nAudio);
-	media_log(MEDIA_LOG_ERROR, LOG_TAG, "after nVideo: %d", nVideo);
-
 	last_released = (nAudio == 0) && (nVideo == 0);
 	if (last_released) {
-		media_log(MEDIA_LOG_INFO, LOG_TAG, "deblocked: %d", n_blocked);
 		for (i = 0; i < n_blocked; i++)
 			sem_post(&sem);
 	}
