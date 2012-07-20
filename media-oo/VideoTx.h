@@ -1,6 +1,6 @@
 
-#ifndef VIDEO_TX
-#define VIDEO_TX
+#ifndef __VIDEO_TX_H__
+#define __VIDEO_TX_H__
 
 extern "C" {
 #include <stdint.h>
@@ -25,7 +25,7 @@ namespace media {
 	public:
 		VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
-			int bit_rate, int gop_size, enum CodecID codecId,
+			int bit_rate, int gop_size, enum CodecID codec_id,
 			int payload_type, enum PixelFormat src_pix_fmt);
 		~VideoTx();
 		int putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time);
@@ -37,4 +37,4 @@ namespace media {
 	};
 }
 
-#endif /* VIDEO_TX */
+#endif /* __VIDEO_TX_H__ */

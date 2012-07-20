@@ -8,7 +8,7 @@ extern "C" {
 #include <init-media.h>
 #include <socket-manager.h>
 
-#include <pthread.h>
+//#include <pthread.h>
 
 //#include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
@@ -25,7 +25,7 @@ using namespace media;
 
 VideoTx::VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
-			int bit_rate, int gop_size, enum CodecID codecId,
+			int bit_rate, int gop_size, enum CodecID codec_id,
 			int payload_type, enum PixelFormat src_pix_fmt)
 {
 	int ret;
@@ -49,7 +49,6 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 
 	_src_pix_fmt = src_pix_fmt;
 
-
 	_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Could not deduce output "
@@ -62,7 +61,8 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 		ret = -1;
 		goto end;
 	}
-	_fmt->video_codec = codecId;
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", _fmt->name);
+	_fmt->video_codec = codec_id;
 
 	/* allocate the output media context */
 	_oc = avformat_alloc_context();
@@ -139,6 +139,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 	ret = 0;
 
 end:
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
 	//return ret;
 	;
 }
