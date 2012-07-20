@@ -28,6 +28,8 @@ namespace media {
 		AVStream* addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 							int sample_rate, int bit_rate);
 		int openAudio();
+		int writeAudioFrame(AVFormatContext *oc, AVStream *st,
+						int16_t *samples, int64_t time);
 	};
 }
 

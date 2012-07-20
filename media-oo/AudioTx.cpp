@@ -161,6 +161,59 @@ AudioTx::~AudioTx()
 	}
 }
 
+int
+AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples, int64_t time)
+{
+	AVCodecContext *c;
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	int ret;
+
+	c = st->codec;
+
+	pkt.size = avcodec_encode_audio(c, _audio_outbuf, _frame_size, samples);
+	pkt.pts = get_pts(time, st->time_base);
+	pkt.flags |= AV_PKT_FLAG_KEY;
+	pkt.stream_index = st->index;
+	pkt.data = _audio_outbuf;
+
+	/* write the compressed frame in the media file */
+	ret = av_write_frame(oc, &pkt);
+	if (ret != 0) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
+		return ret;
+	}
+
+	return pkt.size;
+}
+
+int
+AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
+{
+	int i, ret, nframes, total_size;
+
+	total_size = 0;
+	if (!_oc) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No audio initiated.");
+		ret = -1;
+		goto end;
+	}
+
+	nframes = n_samples / _frame_size;
+	for (i=0; i<nframes; i++) {
+		if( (ret=writeAudioFrame(_oc, _audio_st, &samples[i*_frame_size], time)) < 0) {
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write audio frame");
+			break;
+		}
+		total_size += ret;
+	}
+
+	ret = total_size;
+
+end:
+	return ret;
+}
+
 AVStream*
 AudioTx::addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 						int sample_rate, int bit_rate)
