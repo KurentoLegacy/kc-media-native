@@ -6,6 +6,7 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
+#include "Media.h"
 #include "util/Lock.h"
 
 typedef struct DecodedFrame {
@@ -29,7 +30,7 @@ typedef struct FrameManager {
 } FrameManager;
 
 namespace media {
-	class VideoRx {
+	class VideoRx : public Media {
 	private:
 		const char *_sdp;
 		int _max_delay;

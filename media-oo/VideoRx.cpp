@@ -4,7 +4,6 @@
 extern "C" {
 #include <util/log.h> //TODO: delete
 #include <util/utils.h>
-#include <init-media.h>
 #include <socket-manager.h>
 
 #include "libswscale/swscale.h"
@@ -18,6 +17,7 @@ static int SWS_FLAGS = SWS_BICUBIC;
 using namespace media;
 
 VideoRx::VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager)
+: Media()
 {
 	_sdp = sdp;
 	_max_delay = max_delay;
@@ -53,11 +53,6 @@ VideoRx::start()
 	struct SwsContext *img_convert_ctx;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
-
-	if ((ret = init_media()) != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
-		goto end;
-	}
 
 	_freeLock->lock();
 //	pthread_mutex_lock(&mutex);

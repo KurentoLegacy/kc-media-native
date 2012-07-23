@@ -2,10 +2,9 @@
 #include "VideoTx.h"
 
 extern "C" {
-#include <util/log.h>
+#include <util/log.h> //TODO: delete
 #include <util/utils.h>
 #include <my-cmdutils.h>
-#include <init-media.h>
 #include <socket-manager.h>
 
 //#include <pthread.h>
@@ -22,11 +21,12 @@ static char* LOG_TAG = "media-video-tx";
 static int SWS_FLAGS = SWS_BICUBIC;
 
 using namespace media;
-
+//TODO: methods as synchronized
 VideoTx::VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
 			int bit_rate, int gop_size, enum CodecID codec_id,
 			int payload_type, enum PixelFormat src_pix_fmt)
+: Media()
 {
 	int ret;
 	URLContext *urlContext;
@@ -35,17 +35,12 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 #ifndef USE_X264
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
 	/* TODO: Improve this hack to disable H264 */
-	if (VIDEO_CODECS[codecId] == CODEC_ID_H264) {
+	if (codec_id == CODEC_ID_H264) {
 		media_log(MEDIA_LOG_WARN, LOG_TAG, "H264 not supported");
 		ret = -1;
 		goto end;
 	}
 #endif
-
-	if ( (ret= init_media()) != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
-		goto end;
-	}
 
 	_src_pix_fmt = src_pix_fmt;
 

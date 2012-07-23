@@ -3,14 +3,16 @@
 #define __VIDEO_TX_H__
 
 extern "C" {
-#include <stdint.h>
+//#include <stdint.h>
 
 #include "libavformat/avformat.h"
 #include <libavutil/pixfmt.h>
 }
 
+#include "Media.h"
+
 namespace media {
-	class VideoTx {
+	class VideoTx : public Media {
 	private:
 		AVOutputFormat *_fmt;
 		AVFormatContext *_oc;

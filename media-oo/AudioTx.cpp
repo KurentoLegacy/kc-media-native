@@ -2,10 +2,9 @@
 #include "AudioTx.h"
 
 extern "C" {
-#include <util/log.h>
+#include <util/log.h> //TODO: delete
 #include <util/utils.h>
 #include <my-cmdutils.h>
-#include <init-media.h>
 #include <socket-manager.h>
 
 //#include <pthread.h>
@@ -24,18 +23,14 @@ enum {
 };
 
 using namespace media;
-
+//TODO: methods as synchronized
 AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 				int sample_rate, int bit_rate, int payload_type)
+: Media()
 {
 	int ret;
 	URLContext *urlContext;
 	RTPMuxContext *rptmc;
-
-	if ( (ret = init_media()) != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
-		goto end;
-	}
 
 	this->_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {

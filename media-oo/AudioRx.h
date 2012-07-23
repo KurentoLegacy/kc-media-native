@@ -6,6 +6,7 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
+#include "Media.h"
 #include "util/Lock.h"
 
 typedef struct DecodedAudioSamples {
@@ -22,7 +23,7 @@ typedef struct DecodedAudioSamples {
 typedef void (*put_audio_samples_rx)(DecodedAudioSamples* decoded_audio_samples);
 
 namespace media {
-	class AudioRx {
+	class AudioRx : public Media {
 	private:
 		const char *_sdp;
 		int _max_delay;

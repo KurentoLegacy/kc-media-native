@@ -8,8 +8,10 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
+#include "Media.h"
+
 namespace media {
-	class AudioTx {
+	class AudioTx : public Media {
 	private:
 		AVOutputFormat *_fmt;
 		AVFormatContext *_oc;

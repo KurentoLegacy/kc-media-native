@@ -3,7 +3,6 @@
 
 extern "C" {
 #include <util/log.h>
-#include <init-media.h>
 #include <socket-manager.h>
 
 #include "libavformat/avformat.h"
@@ -24,6 +23,7 @@ enum {
 using namespace media;
 
 AudioRx::AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback)
+: Media()
 {
 	_sdp = sdp;
 	_max_delay = max_delay;
@@ -58,11 +58,6 @@ AudioRx::start()
 	int64_t rx_time;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
-
-	if ((ret = init_media()) != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
-		goto end;
-	}
 
 	_freeLock->lock();
 //	pthread_mutex_lock(&mutex);
