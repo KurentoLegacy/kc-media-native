@@ -2,13 +2,11 @@
 #ifndef __VIDEO_RX_H__
 #define __VIDEO_RX_H__
 
-#include "util/Lock.h"
-
 extern "C" {
-//#include <pthread.h>
-
 #include "libavformat/avformat.h"
 }
+
+#include "util/Lock.h"
 
 typedef struct DecodedFrame {
 	AVFrame* pFrameRGB;

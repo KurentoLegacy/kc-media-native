@@ -7,8 +7,6 @@ extern "C" {
 #include <init-media.h>
 #include <socket-manager.h>
 
-//#include <pthread.h>
-
 #include "libswscale/swscale.h"
 
 #include "sdp-manager.h"
@@ -34,9 +32,10 @@ VideoRx::~VideoRx()
 	delete _freeLock;
 }
 
-int VideoRx::start()
+int
+VideoRx::start()
 {
-	static char buf[256];
+	char buf[256];
 
 	AVFormatContext *pFormatCtx = NULL;
 	AVFormatParameters params, *ap = &params;
@@ -220,12 +219,13 @@ end:
 	if (pDecodecCtxVideo)
 		avcodec_close(pDecodecCtxVideo);
 	close_context(pFormatCtx);
-
 	_freeLock->unlock();
+
 	return ret;
 }
 
-int VideoRx::stop()
+int
+VideoRx::stop()
 {
 //	pthread_mutex_lock(&mutex);
 	_mutex->lock();
