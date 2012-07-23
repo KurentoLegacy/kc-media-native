@@ -3,8 +3,6 @@
 #define __AUDIO_TX_H__
 
 extern "C" {
-#include <stdint.h>
-
 #include "libavformat/avformat.h"
 }
 

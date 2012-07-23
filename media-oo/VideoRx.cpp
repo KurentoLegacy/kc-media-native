@@ -2,7 +2,7 @@
 #include "VideoRx.h"
 
 extern "C" {
-#include <util/log.h> //TODO: delete
+#include <util/log.h>
 #include <util/utils.h>
 #include <socket-manager.h>
 

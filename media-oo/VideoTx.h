@@ -3,10 +3,7 @@
 #define __VIDEO_TX_H__
 
 extern "C" {
-//#include <stdint.h>
-
 #include "libavformat/avformat.h"
-#include <libavutil/pixfmt.h>
 }
 
 #include "Media.h"

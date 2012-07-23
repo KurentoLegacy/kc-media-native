@@ -2,14 +2,11 @@
 #include "VideoTx.h"
 
 extern "C" {
-#include <util/log.h> //TODO: delete
+#include <util/log.h>
 #include <util/utils.h>
 #include <my-cmdutils.h>
 #include <socket-manager.h>
 
-//#include <pthread.h>
-
-//#include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
 #include "libavcodec/opt.h"
 #include "libavformat/rtpenc.h"
