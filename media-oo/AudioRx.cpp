@@ -16,10 +16,6 @@ enum {
 	DATA_SIZE = (AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2,
 };
 
-
-
-
-
 using namespace media;
 
 AudioRx::AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback)

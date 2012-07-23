@@ -7,6 +7,7 @@ extern "C" {
 }
 
 #include "Media.h"
+#include "util/Lock.h"
 
 namespace media {
 	class VideoTx : public Media {
@@ -20,6 +21,8 @@ namespace media {
 		uint8_t *_video_outbuf;
 		int _video_outbuf_size, _n_frame;
 		enum PixelFormat _src_pix_fmt;
+
+		Lock *_mutex;
 
 	public:
 		VideoTx(const char* outfile, int width, int height,

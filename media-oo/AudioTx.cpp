@@ -123,6 +123,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 
 end:
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
+	_mutex = new Lock();
 	//return ret;
 	;
 }
@@ -130,6 +131,8 @@ end:
 AudioTx::~AudioTx()
 {
 	int i;
+
+	_mutex->lock();
 	/* write the trailer, if any.  the trailer must be written
 	* before you close the CodecContexts open when you wrote the
 	* header; otherwise write_trailer may try to use memory that
@@ -151,6 +154,9 @@ AudioTx::~AudioTx()
 		_oc = NULL;
 		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 	}
+
+	_mutex->unlock();
+	delete _mutex;
 }
 
 int
@@ -184,6 +190,7 @@ AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
 {
 	int i, ret, nframes, total_size;
 
+	_mutex->lock();
 	total_size = 0;
 	if (!_oc) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No audio initiated.");
@@ -203,6 +210,7 @@ AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
 	ret = total_size;
 
 end:
+	_mutex->unlock();
 	return ret;
 }
 

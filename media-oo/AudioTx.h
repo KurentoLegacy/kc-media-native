@@ -7,6 +7,7 @@ extern "C" {
 }
 
 #include "Media.h"
+#include "util/Lock.h"
 
 namespace media {
 	class AudioTx : public Media {
@@ -18,6 +19,8 @@ namespace media {
 		uint8_t *_audio_outbuf;
 		int _audio_outbuf_size;
 		int _frame_size;
+
+		Lock *_mutex;
 
 	public:
 		AudioTx(const char* outfile, enum CodecID codec_id,

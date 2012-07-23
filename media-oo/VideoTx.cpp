@@ -132,6 +132,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 
 end:
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
+	_mutex = new Lock();
 	//return ret;
 	;
 }
@@ -139,6 +140,8 @@ end:
 VideoTx::~VideoTx()
 {
 	int i;
+
+	_mutex->lock();
 	/* write the trailer, if any.  the trailer must be written
 	* before you close the CodecContexts open when you wrote the
 	* header; otherwise write_trailer may try to use memory that
@@ -161,6 +164,9 @@ VideoTx::~VideoTx()
 		close_context(_oc);
 		_oc = NULL;
 	}
+
+	_mutex->unlock();
+	delete _mutex;
 }
 
 /**
@@ -173,6 +179,7 @@ VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 	AVCodecContext *c;
 	struct SwsContext *img_convert_ctx;
 
+	_mutex->lock();
 	if (!_oc) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No video initiated.");
 		ret = -1;
@@ -239,6 +246,7 @@ VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
 
 end:
+	_mutex->unlock();
 	return ret;
 }
 
