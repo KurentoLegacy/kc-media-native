@@ -25,11 +25,13 @@ VideoRx::VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager)
 	_max_delay = max_delay;
 	_frame_manager = frame_manager;
 	_mutex = new Lock();
+	_freeLock = new Lock();
 }
 
 VideoRx::~VideoRx()
 {
 	delete _mutex;
+	delete _freeLock;
 }
 
 int VideoRx::start()
@@ -58,6 +60,7 @@ int VideoRx::start()
 		goto end;
 	}
 
+	_freeLock->lock();
 //	pthread_mutex_lock(&mutex);
 	_mutex->lock();
 	_receive = 1;
@@ -218,6 +221,7 @@ end:
 		avcodec_close(pDecodecCtxVideo);
 	close_context(pFormatCtx);
 
+	_freeLock->unlock();
 	return ret;
 }
 
@@ -229,5 +233,7 @@ int VideoRx::stop()
 	set_interrrupt_cb(1);
 //	pthread_mutex_unlock(&mutex);
 	_mutex->unlock();
+	_freeLock->lock();
+	_freeLock->unlock();
 	return 0;
 }

@@ -37,7 +37,8 @@ namespace media {
 		int _max_delay;
 		FrameManager *_frame_manager;
 
-		Lock *_mutex; // = PTHREAD_MUTEX_INITIALIZER;
+		Lock *_mutex;
+		Lock *_freeLock;
 		int _receive;
 
 	public:
