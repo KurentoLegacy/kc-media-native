@@ -29,11 +29,20 @@ namespace media {
 	private:
 		FrameManager *_frame_manager;
 
+		AVFormatContext *pFormatCtx;
+		AVCodecContext *pDecodecCtxVideo;
+
+		int _videoStream;
+		AVFrame *_pFrame;
+
 	public:
 		VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager);
 		~VideoRx();
 		int start();
 		int stop();
+
+	private:
+		void processPacket(AVPacket avpkt, int64_t rx_time);
 	};
 }
 

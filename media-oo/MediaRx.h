@@ -33,6 +33,7 @@ namespace media {
 		void setReceive(bool receive);
 
 		virtual int openFormatContext(AVFormatContext **c);
+		virtual void processPacket(AVPacket avpkt, int64_t rx_time) = 0;
 	};
 }
 

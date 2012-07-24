@@ -149,3 +149,9 @@ AudioRx::stop()
 
 	return 0;
 }
+
+void
+AudioRx::processPacket(AVPacket avpkt, int64_t rx_time)
+{
+
+}

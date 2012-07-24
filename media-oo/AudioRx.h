@@ -28,6 +28,8 @@ namespace media {
 		~AudioRx();
 		int start();
 		int stop();
+	private:
+		void processPacket(AVPacket avpkt, int64_t rx_time);
 	};
 }
 
