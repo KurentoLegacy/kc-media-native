@@ -64,12 +64,7 @@ AudioRx::start()
 	pDecodecCtxAudio = pFormatCtx->streams[audioStream]->codec;
 
 	// Find the decoder for the video stream
-	if(pDecodecCtxAudio->codec_id == CODEC_ID_AMR_NB) {
-		pDecodecAudio = avcodec_find_decoder_by_name("libopencore_amrnb");
-	}
-	else {
-		pDecodecAudio = avcodec_find_decoder(pDecodecCtxAudio->codec_id);
-	}
+	pDecodecAudio = avcodec_find_decoder(pDecodecCtxAudio->codec_id);
 
 	if (pDecodecAudio == NULL) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Unsupported audio codec");
