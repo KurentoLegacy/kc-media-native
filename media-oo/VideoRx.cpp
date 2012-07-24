@@ -42,8 +42,6 @@ VideoRx::processPacket(AVPacket avpkt, int64_t rx_time)
 			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in video decoding");
 			break;
 		}
-		if (!this->getReceive())
-			break;
 
 		//Did we get a video frame?
 		if (got_picture) {

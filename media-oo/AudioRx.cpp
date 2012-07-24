@@ -46,9 +46,6 @@ AudioRx::processPacket(AVPacket avpkt, int64_t rx_time)
 			break;
 		}
 
-		if (!this->getReceive())
-			break;
-
 		if (out_size > 0) {
 			ds->samples = outbuf;
 			ds->size = out_size;
