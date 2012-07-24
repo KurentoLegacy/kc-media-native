@@ -5,6 +5,10 @@
 #include "Media.h"
 #include "util/Lock.h"
 
+extern "C" {
+#include "libavformat/avformat.h"
+}
+
 namespace media {
 	class MediaRx : public Media {
 	private:
@@ -27,6 +31,8 @@ namespace media {
 	protected:
 		bool getReceive();
 		void setReceive(bool receive);
+
+		virtual int openFormatContext(AVFormatContext **c);
 	};
 }
 

@@ -2,12 +2,9 @@
 #include "AudioRx.h"
 
 extern "C" {
-#include <util/log.h>
 #include <socket-manager.h>
 
 #include "libavformat/avformat.h"
-
-#include "sdp-manager.h"
 }
 
 enum {
@@ -31,10 +28,7 @@ AudioRx::~AudioRx()
 int
 AudioRx::start()
 {
-	char buf[256];
-
 	AVFormatContext *pFormatCtx = NULL;
-	AVFormatParameters params, *ap = &params;
 	AVCodecContext *pDecodecCtxAudio = NULL;
 	AVCodec *pDecodecAudio = NULL;
 
@@ -46,34 +40,11 @@ AudioRx::start()
 	int i, ret, audioStream, out_size, len;
 	int64_t rx_time;
 
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
-
 	_freeLock->lock();
 	this->setReceive(true);
-	for(;;) {
-		if (!this->getReceive())
-			goto end;
-
-		pFormatCtx = avformat_alloc_context();
-		pFormatCtx->max_delay = _max_delay * 1000;
-		ap->prealloced_context = 1;
-
-		// Open audio file
-		if ( (ret = av_open_input_sdp(&pFormatCtx, _sdp, ap)) != 0 ) {
-			av_strerror(ret, buf, sizeof(buf));
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't process sdp: %s", buf);
-			ret = -2;
-			goto end;
-		}
-
-		// Retrieve stream information
-		if ( (ret = av_find_stream_info(pFormatCtx)) < 0) {
-			av_strerror(ret, buf, sizeof(buf));
-			media_log(MEDIA_LOG_WARN, LOG_TAG, "Couldn't find stream information: %s", buf);
-			close_context(pFormatCtx);
-		} else
-			break;
-	}
+	if ((ret = MediaRx::openFormatContext(&pFormatCtx)) < 0)
+		goto end;
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", pFormatCtx->max_delay/1000);
 
 	// Find the first audio stream
 	audioStream = -1;
@@ -106,7 +77,6 @@ AudioRx::start()
 		goto end;
 	}
 
-	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", pFormatCtx->max_delay/1000);
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "audio codec: %s", pDecodecAudio->name);
 
 	// Open audio codec

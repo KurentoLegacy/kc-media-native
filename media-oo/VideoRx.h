@@ -2,10 +2,6 @@
 #ifndef __VIDEO_RX_H__
 #define __VIDEO_RX_H__
 
-extern "C" {
-#include "libavformat/avformat.h"
-}
-
 #include "MediaRx.h"
 
 typedef struct DecodedFrame {

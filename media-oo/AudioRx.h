@@ -2,10 +2,6 @@
 #ifndef __AUDIO_RX_H__
 #define __AUDIO_RX_H__
 
-extern "C" {
-#include "libavformat/avformat.h"
-}
-
 #include "MediaRx.h"
 #include "util/Lock.h"
 
