@@ -149,10 +149,8 @@ AudioTx::~AudioTx()
 			av_freep(&_oc->streams[i]->codec);
 			av_freep(&_oc->streams[i]);
 		}
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Close the context...");
 		close_context(_oc);
 		_oc = NULL;
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "ok");
 	}
 
 	_mutex->unlock();
