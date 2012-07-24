@@ -2,6 +2,10 @@
 #ifndef __MEDIA_H__
 #define __MEDIA_H__
 
+extern "C" {
+#include <util/log.h>
+}
+
 namespace media {
 	class Media {
 	protected:

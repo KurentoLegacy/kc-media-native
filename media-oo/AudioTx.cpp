@@ -2,7 +2,6 @@
 #include "AudioTx.h"
 
 extern "C" {
-#include <util/log.h>
 #include <util/utils.h>
 #include <my-cmdutils.h>
 #include <socket-manager.h>

@@ -2,7 +2,6 @@
 #include "Media.h"
 
 extern "C" {
-#include <util/log.h>
 #include <pthread.h>
 
 #include "libavformat/avformat.h"
