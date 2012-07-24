@@ -28,16 +28,12 @@ AudioRx::~AudioRx()
 int
 AudioRx::start()
 {
-	AVFormatContext *pFormatCtx = NULL;
-	AVCodecContext *pDecodecCtxAudio = NULL;
 	AVCodec *pDecodecAudio = NULL;
 
 	AVPacket avpkt;
 	uint8_t *avpkt_data_init;
-	uint8_t outbuf[DATA_SIZE];
-	DecodedAudioSamples decoded_samples, *ds = &decoded_samples;
 
-	int i, ret, audioStream, out_size, len;
+	int i, ret;
 	int64_t rx_time;
 
 	_freeLock->lock();
@@ -47,21 +43,21 @@ AudioRx::start()
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", pFormatCtx->max_delay/1000);
 
 	// Find the first audio stream
-	audioStream = -1;
+	_audioStream = -1;
 	for (i = 0; i < pFormatCtx->nb_streams; i++) {
 		if (pFormatCtx->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) {
-			audioStream = i;
+			_audioStream = i;
 			break;
 		}
 	}
-	if (audioStream == -1) {
+	if (_audioStream == -1) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Didn't find a audio stream");
 		ret = -4;
 		goto end;
 	}
 
 	// Get a pointer to the codec context for the audio stream
-	pDecodecCtxAudio = pFormatCtx->streams[audioStream]->codec;
+	pDecodecCtxAudio = pFormatCtx->streams[_audioStream]->codec;
 
 	// Find the decoder for the video stream
 	pDecodecAudio = avcodec_find_decoder(pDecodecCtxAudio->codec_id);
@@ -92,36 +88,7 @@ AudioRx::start()
 		if (av_read_frame(pFormatCtx, &avpkt) >= 0) {
 			rx_time = av_gettime() / 1000;
 			avpkt_data_init = avpkt.data;
-			//Is this a avpkt from the audio stream?
-			if (avpkt.stream_index == audioStream) {
-				while (avpkt.size > 0) {
-					//Decode audio frame
-					//FIXME: do not reuse outbuf.
-					out_size = DATA_SIZE;
-					len = avcodec_decode_audio3(pDecodecCtxAudio, (int16_t*)outbuf, &out_size, &avpkt);
-					if (len < 0) {
-						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in audio decoding.");
-						break;
-					}
-
-					if (!this->getReceive())
-						break;
-
-					if (out_size > 0) {
-						ds->samples = outbuf;
-						ds->size = out_size;
-						ds->time_base = pFormatCtx->streams[audioStream]->time_base;
-						ds->pts = avpkt.pts;
-						ds->start_time = pFormatCtx->streams[audioStream]->start_time;
-						ds->rx_time = rx_time;
-						ds->encoded_size = len;
-						_callback(ds);
-					}
-
-					avpkt.size -= len;
-					avpkt.data += len;
-				}
-			}
+			this->processPacket(avpkt, rx_time);
 			//Free the packet that was allocated by av_read_frame
 			avpkt.data = avpkt_data_init;
 			av_free_packet(&avpkt);
@@ -153,5 +120,38 @@ AudioRx::stop()
 void
 AudioRx::processPacket(AVPacket avpkt, int64_t rx_time)
 {
+	int out_size, len;
+	DecodedAudioSamples decoded_samples, *ds = &decoded_samples;
+	uint8_t outbuf[DATA_SIZE];
 
+	//Is this a avpkt from the audio stream?
+	if (avpkt.stream_index == _audioStream) {
+		while (avpkt.size > 0) {
+			//Decode audio frame
+			//FIXME: do not reuse outbuf.
+			out_size = DATA_SIZE;
+			len = avcodec_decode_audio3(pDecodecCtxAudio, (int16_t*)outbuf, &out_size, &avpkt);
+			if (len < 0) {
+				media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in audio decoding.");
+				break;
+			}
+
+			if (!this->getReceive())
+				break;
+
+			if (out_size > 0) {
+				ds->samples = outbuf;
+				ds->size = out_size;
+				ds->time_base = pFormatCtx->streams[_audioStream]->time_base;
+				ds->pts = avpkt.pts;
+				ds->start_time = pFormatCtx->streams[_audioStream]->start_time;
+				ds->rx_time = rx_time;
+				ds->encoded_size = len;
+				_callback(ds);
+			}
+
+			avpkt.size -= len;
+			avpkt.data += len;
+		}
+	}
 }
