@@ -13,6 +13,7 @@ namespace media {
 	class MediaRx : public Media {
 	private:
 		bool _receive;
+		CodecType _codec_type;
 
 	protected:
 		const char *_sdp;
@@ -21,19 +22,24 @@ namespace media {
 		Lock *_mutex;
 		Lock *_freeLock;
 
+		AVFormatContext *_pFormatCtx;
+		AVCodecContext *_pDecodecCtx;
+		int _stream;
+
 	public:
-		MediaRx(const char* sdp, int max_delay);
+		MediaRx(const char* sdp, int max_delay, CodecType codec_type);
 		virtual ~MediaRx();
 
-		virtual int start() = 0;
-		virtual int stop() = 0;
+		int start();
+		int stop();
 
 	protected:
 		bool getReceive();
 		void setReceive(bool receive);
-
-		virtual int openFormatContext(AVFormatContext **c);
 		virtual void processPacket(AVPacket avpkt, int64_t rx_time) = 0;
+
+	private:
+		int openFormatContext(AVFormatContext **c);
 	};
 }
 

@@ -8,11 +8,12 @@ extern "C" {
 
 using namespace media;
 
-MediaRx::MediaRx(const char* sdp, int max_delay)
+MediaRx::MediaRx(const char* sdp, int max_delay, CodecType codec_type)
 : Media()
 {
 	_sdp = sdp;
 	_max_delay = max_delay;
+	_codec_type = codec_type;
 	_mutex = new Lock();
 	_freeLock = new Lock();
 	LOG_TAG = "media-rx";
@@ -78,6 +79,92 @@ MediaRx::openFormatContext(AVFormatContext **c)
 			break;
 	}
 	*c = pFormatCtx;
+
+	return 0;
+}
+
+
+int
+MediaRx::start()
+{
+	AVCodec *pDecodec = NULL;
+
+	AVPacket avpkt;
+	uint8_t *avpkt_data_init;
+
+	int i, ret;
+	int64_t rx_time;
+
+	_freeLock->lock();
+	this->setReceive(true);
+	if ((ret = MediaRx::openFormatContext(&_pFormatCtx)) < 0)
+		goto end;
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", _pFormatCtx->max_delay/1000);
+
+	// Find the first stream
+	_stream = -1;
+	for (i = 0; i < _pFormatCtx->nb_streams; i++) {
+		if (_pFormatCtx->streams[i]->codec->codec_type == _codec_type) {
+			_stream = i;
+			break;
+		}
+	}
+	if (_stream == -1) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Didn't find a stream");
+		ret = -4;
+		goto end;
+	}
+
+	// Get a pointer to the codec context for the stream
+	_pDecodecCtx = _pFormatCtx->streams[_stream]->codec;
+
+	// Find the decoder for the stream
+	pDecodec = avcodec_find_decoder(_pDecodecCtx->codec_id);
+	if (pDecodec == NULL) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Unsupported codec");
+		ret = -5; // Codec not found
+		goto end;
+	}
+
+	// Open video codec
+	if (avcodec_open(_pDecodecCtx, pDecodec) < 0) {
+		ret = -6; // Could not open codec
+		goto end;
+	}
+
+	//READING THE DATA
+	for(;;) {
+		if (!this->getReceive())
+			break;
+
+		if (av_read_frame(_pFormatCtx, &avpkt) >= 0) {
+			rx_time = av_gettime() / 1000;
+			avpkt_data_init = avpkt.data;
+			this->processPacket(avpkt, rx_time);
+			//Free the packet that was allocated by av_read_frame
+			avpkt.data = avpkt_data_init;
+			av_free_packet(&avpkt);
+		}
+	}
+
+	ret = 0;
+
+end:
+	if (_pDecodecCtx)
+		avcodec_close(_pDecodecCtx);
+	close_context(_pFormatCtx);
+	_freeLock->unlock();
+
+	return ret;
+}
+
+int
+MediaRx::stop()
+{
+	set_interrrupt_cb(1);
+	this->setReceive(false);
+	_freeLock->lock();
+	_freeLock->unlock();
 
 	return 0;
 }

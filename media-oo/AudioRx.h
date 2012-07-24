@@ -23,16 +23,10 @@ namespace media {
 	private:
 		put_audio_samples_rx _callback;
 
-		AVFormatContext *pFormatCtx;
-		AVCodecContext *pDecodecCtxAudio;
-
-		int _audioStream;
-
 	public:
 		AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback);
 		~AudioRx();
-		int start();
-		int stop();
+
 	private:
 		void processPacket(AVPacket avpkt, int64_t rx_time);
 	};
