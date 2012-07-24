@@ -13,6 +13,10 @@ static pthread_mutex_t mutex_interrupt = PTHREAD_MUTEX_INITIALIZER;
 static int initialized = 0;
 static int interrupt = 0;
 
+using namespace media;
+
+const char* Media::LOG_TAG = "media";
+
 /*
 	see	libavutil/log.c
 		ffserver.c
@@ -91,8 +95,6 @@ set_interrrupt_cb(int i)
 	pthread_mutex_unlock(&mutex_interrupt);
 }
 
-using namespace media;
-
 //TODO: ¿methods as synchronized?
 Media::Media()
 {
@@ -100,7 +102,7 @@ Media::Media()
 		av_log_set_callback(media_av_log);
 		av_register_all();
 		if (av_lockmgr_register(lockmgr) !=0)
-			media_log(MEDIA_LOG_ERROR, "media", "Couldn't init media");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		avio_set_interrupt_cb(media_interrupt_cb);
 		initialized = 1;
 	}

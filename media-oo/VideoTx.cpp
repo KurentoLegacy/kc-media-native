@@ -14,7 +14,6 @@ extern "C" {
 #include "libavformat/url.h"
 }
 
-static char* LOG_TAG = "media-video-tx";
 static int SWS_FLAGS = SWS_BICUBIC;
 
 using namespace media;
@@ -28,6 +27,8 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 	int ret;
 	URLContext *urlContext;
 	RTPMuxContext *rptmc;
+
+	LOG_TAG = "media-video-tx";
 
 #ifndef USE_X264
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
@@ -107,7 +108,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 	}
 
 	//Free old URLContext
-	if ( (ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
+	if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}

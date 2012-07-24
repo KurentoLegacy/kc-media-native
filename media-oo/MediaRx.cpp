@@ -10,6 +10,7 @@ MediaRx::MediaRx(const char* sdp, int max_delay)
 	_max_delay = max_delay;
 	_mutex = new Lock();
 	_freeLock = new Lock();
+	LOG_TAG = "media-rx";
 }
 
 MediaRx::~MediaRx()

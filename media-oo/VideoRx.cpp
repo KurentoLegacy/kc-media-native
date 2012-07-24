@@ -11,7 +11,6 @@ extern "C" {
 #include "sdp-manager.h"
 }
 
-static char* LOG_TAG = "media-video-rx";
 static int SWS_FLAGS = SWS_BICUBIC;
 
 using namespace media;
@@ -20,6 +19,7 @@ VideoRx::VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager)
 : MediaRx(sdp, max_delay)
 {
 	_frame_manager = frame_manager;
+	LOG_TAG = "media-video-rx";
 }
 
 VideoRx::~VideoRx()

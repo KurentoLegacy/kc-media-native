@@ -14,7 +14,6 @@ extern "C" {
 #include "libavformat/url.h"
 }
 
-static char* LOG_TAG = "media-audio-tx";
 enum {
 	DEFAULT_FRAME_SIZE = 20, //milliseconds
 };
@@ -28,6 +27,8 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 	int ret;
 	URLContext *urlContext;
 	RTPMuxContext *rptmc;
+
+	LOG_TAG = "media-audio-tx";
 
 	this->_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {
@@ -92,7 +93,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 	}
 
 	//Free old URLContext
-	if( (ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
+	if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}
@@ -274,7 +275,3 @@ AudioTx::openAudio()
 
 	return 0;
 }
-
-
-
-

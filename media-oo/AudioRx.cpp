@@ -10,8 +10,6 @@ extern "C" {
 #include "sdp-manager.h"
 }
 
-static char* LOG_TAG = "media-audio-rx";
-
 enum {
 	DATA_SIZE = (AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2,
 };
@@ -22,13 +20,13 @@ AudioRx::AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback)
 : MediaRx(sdp, max_delay)
 {
 	_callback = callback;
+	LOG_TAG = "media-audio-rx";
 }
 
 AudioRx::~AudioRx()
 {
 
 }
-
 
 int
 AudioRx::start()
