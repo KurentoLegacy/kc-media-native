@@ -17,19 +17,14 @@ static int SWS_FLAGS = SWS_BICUBIC;
 using namespace media;
 
 VideoRx::VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager)
-: Media()
+: MediaRx(sdp, max_delay)
 {
-	_sdp = sdp;
-	_max_delay = max_delay;
 	_frame_manager = frame_manager;
-	_mutex = new Lock();
-	_freeLock = new Lock();
 }
 
 VideoRx::~VideoRx()
 {
-	delete _mutex;
-	delete _freeLock;
+
 }
 
 int
@@ -55,21 +50,10 @@ VideoRx::start()
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
 
 	_freeLock->lock();
-//	pthread_mutex_lock(&mutex);
-	_mutex->lock();
-	_receive = 1;
-//	pthread_mutex_unlock(&mutex);
-	_mutex->unlock();
+	this->setReceive(true);
 	for(;;) {
-//		pthread_mutex_lock(&mutex);
-		_mutex->lock();
-		if (!_receive) {
-//			pthread_mutex_unlock(&mutex);
-			_mutex->unlock();
+		if (!this->getReceive())
 			goto end;
-		}
-//		pthread_mutex_unlock(&mutex);
-		_mutex->unlock();
 
 		pFormatCtx = avformat_alloc_context();
 		pFormatCtx->max_delay = _max_delay * 1000;
@@ -131,15 +115,9 @@ VideoRx::start()
 
 	//READING THE DATA
 	for(;;) {
-//		pthread_mutex_lock(&mutex);
-		_mutex->lock();
-		if (!_receive) {
-//			pthread_mutex_unlock(&mutex);
-			_mutex->unlock();
+		if (!this->getReceive())
 			break;
-		}
-//		pthread_mutex_unlock(&mutex);
-		_mutex->unlock();
+
 		if (av_read_frame(pFormatCtx, &avpkt) >= 0) {
 			rx_time = av_gettime() / 1000;
 			avpkt_data_init = avpkt.data;
@@ -151,22 +129,15 @@ VideoRx::start()
 						media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error in video decoding");
 						break;
 					}
-//					pthread_mutex_lock(&mutex);
-					_mutex->lock();
-					if (!_receive) {
-//						pthread_mutex_unlock(&mutex);
-						_mutex->unlock();
+					if (!this->getReceive())
 						break;
-					}
+
 					//Did we get a video frame?
 					if (got_picture) {
 						decoded_frame = _frame_manager->get_decoded_frame(
 									pDecodecCtxVideo->width, pDecodecCtxVideo->height);
-						if (!decoded_frame) {
-//							pthread_mutex_unlock(&mutex);
-							_mutex->unlock();
+						if (!decoded_frame)
 							break;
-						}
 
 						//Convert the image from its native format to RGB
 						img_convert_ctx = sws_getContext(pDecodecCtxVideo->width,
@@ -192,8 +163,6 @@ VideoRx::start()
 
 						_frame_manager->put_video_frame_rx(decoded_frame);
 					}
-//					pthread_mutex_unlock(&mutex);
-					_mutex->unlock();
 
 					avpkt.size -= len;
 					avpkt.data += len;
@@ -222,13 +191,10 @@ end:
 int
 VideoRx::stop()
 {
-//	pthread_mutex_lock(&mutex);
-	_mutex->lock();
-	_receive = 0;
 	set_interrrupt_cb(1);
-//	pthread_mutex_unlock(&mutex);
-	_mutex->unlock();
+	this->setReceive(false);
 	_freeLock->lock();
 	_freeLock->unlock();
+
 	return 0;
 }

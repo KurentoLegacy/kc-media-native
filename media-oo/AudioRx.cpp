@@ -19,19 +19,14 @@ enum {
 using namespace media;
 
 AudioRx::AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback)
-: Media()
+: MediaRx(sdp, max_delay)
 {
-	_sdp = sdp;
-	_max_delay = max_delay;
 	_callback = callback;
-	_mutex = new Lock();
-	_freeLock = new Lock();
 }
 
 AudioRx::~AudioRx()
 {
-	delete _mutex;
-	delete _freeLock;
+
 }
 
 
@@ -56,21 +51,10 @@ AudioRx::start()
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
 
 	_freeLock->lock();
-//	pthread_mutex_lock(&mutex);
-	_mutex->lock();
-	_receive = 1;
-//	pthread_mutex_unlock(&mutex);
-	_mutex->unlock();
+	this->setReceive(true);
 	for(;;) {
-		_mutex->lock();
-//		pthread_mutex_lock(&mutex);
-		if (!_receive) {
-//			pthread_mutex_unlock(&mutex);
-			_mutex->unlock();
+		if (!this->getReceive())
 			goto end;
-		}
-//		pthread_mutex_unlock(&mutex);
-		_mutex->unlock();
 
 		pFormatCtx = avformat_alloc_context();
 		pFormatCtx->max_delay = _max_delay * 1000;
@@ -139,15 +123,8 @@ AudioRx::start()
 
 	//READING THE DATA
 	for(;;) {
-//		pthread_mutex_lock(&mutex);
-		_mutex->lock();
-		if (!_receive) {
-//			pthread_mutex_unlock(&mutex);
-			_mutex->unlock();
+		if (!this->getReceive())
 			break;
-		}
-//		pthread_mutex_unlock(&mutex);
-		_mutex->unlock();
 
 		if (av_read_frame(pFormatCtx, &avpkt) >= 0) {
 			rx_time = av_gettime() / 1000;
@@ -164,13 +141,9 @@ AudioRx::start()
 						break;
 					}
 
-//					pthread_mutex_lock(&mutex);
-					_mutex->lock();
-					if (!_receive) {
-//						pthread_mutex_unlock(&mutex);
-						_mutex->unlock();
+					if (!this->getReceive())
 						break;
-					}
+
 					if (out_size > 0) {
 						ds->samples = outbuf;
 						ds->size = out_size;
@@ -181,8 +154,6 @@ AudioRx::start()
 						ds->encoded_size = len;
 						_callback(ds);
 					}
-//					pthread_mutex_unlock(&mutex);
-					_mutex->unlock();
 
 					avpkt.size -= len;
 					avpkt.data += len;
@@ -208,12 +179,8 @@ end:
 int
 AudioRx::stop()
 {
-//	pthread_mutex_lock(&mutex);
-	_mutex->lock();
-	_receive = 0;
 	set_interrrupt_cb(1);
-//	pthread_mutex_unlock(&mutex);
-	_mutex->unlock();
+	this->setReceive(false);
 	_freeLock->lock();
 	_freeLock->unlock();
 
