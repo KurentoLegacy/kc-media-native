@@ -14,8 +14,6 @@ static int interrupt = 0;
 
 using namespace media;
 
-const char* Media::LOG_TAG = "media";
-
 /*
 	see	libavutil/log.c
 		ffserver.c
@@ -105,6 +103,7 @@ Media::Media()
 		avio_set_interrupt_cb(media_interrupt_cb);
 		initialized = 1;
 	}
+	LOG_TAG = "media";
 	set_interrrupt_cb(0);
 }
 

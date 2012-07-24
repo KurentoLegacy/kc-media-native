@@ -9,7 +9,7 @@ extern "C" {
 namespace media {
 	class Media {
 	protected:
-		static const char* LOG_TAG;
+		const char* LOG_TAG;
 	public:
 		Media();
 		~Media();
