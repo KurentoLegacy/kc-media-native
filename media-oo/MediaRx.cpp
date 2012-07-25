@@ -1,17 +1,20 @@
 
 #include "MediaRx.h"
+#include "MediaPortManager.h"
 
 extern "C" {
-#include <socket-manager.h>
+//#include <socket-manager.h>
 #include "sdp-manager.h"
 }
 
 using namespace media;
 
-MediaRx::MediaRx(const char* sdp, int max_delay, CodecType codec_type)
+MediaRx::MediaRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+							CodecType codec_type)
 : Media()
 {
 	_sdp = sdp;
+	_mediaPort = mediaPort;
 	_max_delay = max_delay;
 	_codec_type = codec_type;
 	_mutex = new Lock();
@@ -49,10 +52,13 @@ MediaRx::openFormatContext(AVFormatContext **c)
 {
 	AVFormatContext *pFormatCtx = NULL;
 	AVFormatParameters params, *ap = &params;
+	URLContext *urlContext;
 	int ret;
 	char buf[256];
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
+
+	urlContext = _mediaPort->getConnection();
 
 	for(;;) {
 		if (!this->getReceive())
@@ -63,7 +69,7 @@ MediaRx::openFormatContext(AVFormatContext **c)
 		ap->prealloced_context = 1;
 
 		// Open sdp
-		if ((ret = av_open_input_sdp(&pFormatCtx, _sdp, ap)) != 0 ) {
+		if ((ret = av_open_input_sdp(&pFormatCtx, _sdp, ap, urlContext)) != 0 ) {
 			av_strerror(ret, buf, sizeof(buf));
 			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't process sdp: %s", buf);
 			return ret;
@@ -73,7 +79,7 @@ MediaRx::openFormatContext(AVFormatContext **c)
 		if ((ret = av_find_stream_info(pFormatCtx)) < 0) {
 			av_strerror(ret, buf, sizeof(buf));
 			media_log(MEDIA_LOG_WARN, LOG_TAG, "Couldn't find stream information: %s", buf);
-			close_context(pFormatCtx);
+			_mediaPort->closeContext(pFormatCtx);
 
 		} else
 			break;
@@ -152,7 +158,8 @@ MediaRx::start()
 end:
 	if (_pDecodecCtx)
 		avcodec_close(_pDecodecCtx);
-	close_context(_pFormatCtx);
+	_mediaPort->closeContext(_pFormatCtx);
+	MediaPortManager::releaseMediaPort(_mediaPort);
 	_freeLock->unlock();
 
 	return ret;

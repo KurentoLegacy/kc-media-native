@@ -31,7 +31,8 @@ namespace media {
 		AVFrame *_pFrame;
 
 	public:
-		VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager);
+		VideoRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+						FrameManager *frame_manager);
 		~VideoRx();
 
 	private:

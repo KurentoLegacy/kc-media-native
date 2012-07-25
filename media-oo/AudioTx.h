@@ -8,10 +8,13 @@ extern "C" {
 
 #include "Media.h"
 #include "util/Lock.h"
+#include "MediaPort.h"
 
 namespace media {
 	class AudioTx : public Media {
 	private:
+		MediaPort* _mediaPort;
+
 		AVOutputFormat *_fmt;
 		AVFormatContext *_oc;
 		AVStream *_audio_st;
@@ -24,7 +27,8 @@ namespace media {
 
 	public:
 		AudioTx(const char* outfile, enum CodecID codec_id,
-				int sample_rate, int bit_rate, int payload_type);
+				int sample_rate, int bit_rate, int payload_type,
+				MediaPort* mediaPort);
 		~AudioTx();
 		int putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time);
 	private:

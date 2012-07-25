@@ -8,10 +8,13 @@ extern "C" {
 
 #include "Media.h"
 #include "util/Lock.h"
+#include "MediaPort.h"
 
 namespace media {
 	class VideoTx : public Media {
 	private:
+		MediaPort* _mediaPort;
+
 		AVOutputFormat *_fmt;
 		AVFormatContext *_oc;
 		AVStream *_video_st;
@@ -28,7 +31,8 @@ namespace media {
 		VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
 			int bit_rate, int gop_size, enum CodecID codec_id,
-			int payload_type, enum PixelFormat src_pix_fmt);
+			int payload_type, enum PixelFormat src_pix_fmt,
+			MediaPort* mediaPort);
 		~VideoTx();
 		int putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time);
 	private:

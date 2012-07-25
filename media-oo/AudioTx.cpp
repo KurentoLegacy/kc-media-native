@@ -1,10 +1,11 @@
 
 #include "AudioTx.h"
+#include "MediaPortManager.h"
 
 extern "C" {
 #include <util/utils.h>
 #include <my-cmdutils.h>
-#include <socket-manager.h>
+//#include <socket-manager.h>
 
 #include "libswscale/swscale.h"
 #include "libavcodec/opt.h"
@@ -20,7 +21,8 @@ enum {
 using namespace media;
 //TODO: methods as synchronized
 AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
-				int sample_rate, int bit_rate, int payload_type)
+				int sample_rate, int bit_rate, int payload_type,
+				MediaPort* mediaPort)
 : Media()
 {
 	int ret;
@@ -28,6 +30,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 	RTPMuxContext *rptmc;
 
 	LOG_TAG = "media-audio-tx";
+	_mediaPort = mediaPort;
 
 	this->_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {
@@ -97,7 +100,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 		goto end;
 	}
 
-	urlContext = (URLContext*)get_audio_connection(0);
+	urlContext = _mediaPort->getConnection();//(URLContext*)get_audio_connection(0);
 	if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
 		goto end;
@@ -149,7 +152,9 @@ AudioTx::~AudioTx()
 			av_freep(&_oc->streams[i]->codec);
 			av_freep(&_oc->streams[i]);
 		}
-		close_context(_oc);
+		//close_context(_oc);
+		_mediaPort->closeContext(_oc);
+		MediaPortManager::releaseMediaPort(_mediaPort);
 		_oc = NULL;
 	}
 

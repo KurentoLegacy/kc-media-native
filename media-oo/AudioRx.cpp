@@ -13,8 +13,9 @@ enum {
 
 using namespace media;
 
-AudioRx::AudioRx(const char* sdp, int max_delay, put_audio_samples_rx callback)
-: MediaRx(sdp, max_delay, CODEC_TYPE_AUDIO)
+AudioRx::AudioRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+						put_audio_samples_rx callback)
+: MediaRx(mediaPort, sdp, max_delay, CODEC_TYPE_AUDIO)
 {
 	_callback = callback;
 	LOG_TAG = "media-audio-rx";

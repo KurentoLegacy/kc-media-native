@@ -4,6 +4,7 @@
 
 #include "Media.h"
 #include "util/Lock.h"
+#include "MediaPort.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -13,6 +14,7 @@ namespace media {
 	class MediaRx : public Media {
 	private:
 		bool _receive;
+		MediaPort *_mediaPort;
 		CodecType _codec_type;
 
 	protected:
@@ -27,7 +29,8 @@ namespace media {
 		int _stream;
 
 	public:
-		MediaRx(const char* sdp, int max_delay, CodecType codec_type);
+		MediaRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+							CodecType codec_type);
 		virtual ~MediaRx();
 
 		int start();

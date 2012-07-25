@@ -1,10 +1,11 @@
 
 #include "VideoTx.h"
+#include "MediaPortManager.h"
 
 extern "C" {
 #include <util/utils.h>
 #include <my-cmdutils.h>
-#include <socket-manager.h>
+//#include <socket-manager.h>
 
 #include "libswscale/swscale.h"
 #include "libavcodec/opt.h"
@@ -20,7 +21,8 @@ using namespace media;
 VideoTx::VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
 			int bit_rate, int gop_size, enum CodecID codec_id,
-			int payload_type, enum PixelFormat src_pix_fmt)
+			int payload_type, enum PixelFormat src_pix_fmt,
+			MediaPort* mediaPort)
 : Media()
 {
 	int ret;
@@ -28,6 +30,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 	RTPMuxContext *rptmc;
 
 	LOG_TAG = "media-video-tx";
+	_mediaPort = mediaPort;
 
 #ifndef USE_X264
 	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
@@ -112,7 +115,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 		goto end;
 	}
 
-	urlContext = (URLContext*)get_video_connection(0);
+	urlContext = _mediaPort->getConnection();//(URLContext*)get_video_connection(0);
 	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG,
 			  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
@@ -161,7 +164,9 @@ VideoTx::~VideoTx()
 			av_freep(&_oc->streams[i]->codec);
 			av_freep(&_oc->streams[i]);
 		}
-		close_context(_oc);
+		//close_context(_oc);
+		_mediaPort->closeContext(_oc);
+		MediaPortManager::releaseMediaPort(_mediaPort);
 		_oc = NULL;
 	}
 

@@ -11,8 +11,9 @@ static int SWS_FLAGS = SWS_BICUBIC;
 
 using namespace media;
 
-VideoRx::VideoRx(const char* sdp, int max_delay, FrameManager *frame_manager)
-: MediaRx(sdp, max_delay, CODEC_TYPE_VIDEO)
+VideoRx::VideoRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+						FrameManager *frame_manager)
+: MediaRx(mediaPort, sdp, max_delay, CODEC_TYPE_VIDEO)
 {
 	_frame_manager = frame_manager;
 	_pFrame = avcodec_alloc_frame();
