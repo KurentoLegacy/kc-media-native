@@ -3,7 +3,6 @@
 #include "MediaPortManager.h"
 
 extern "C" {
-//#include <socket-manager.h>
 #include "sdp-manager.h"
 }
 

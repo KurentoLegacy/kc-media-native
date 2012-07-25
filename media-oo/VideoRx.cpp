@@ -2,8 +2,6 @@
 #include "VideoRx.h"
 
 extern "C" {
-#include <socket-manager.h>
-
 #include "libswscale/swscale.h"
 }
 

@@ -2,8 +2,6 @@
 #include "AudioRx.h"
 
 extern "C" {
-#include <socket-manager.h>
-
 #include "libavformat/avformat.h"
 }
 
