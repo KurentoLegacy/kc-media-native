@@ -54,7 +54,8 @@ media_av_log(void *ptr, int level, const char *fmt, va_list vargs)
 }
 
 static int
-lockmgr(void **mtx, enum AVLockOp op) {
+lockmgr(void **mtx, enum AVLockOp op)
+{
 	switch(op) {
 	case AV_LOCK_CREATE:
 		*mtx = malloc(sizeof(pthread_mutex_t));

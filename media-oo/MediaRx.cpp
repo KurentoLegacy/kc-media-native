@@ -3,7 +3,7 @@
 #include "MediaPortManager.h"
 
 extern "C" {
-#include "sdp-manager.h"
+#include "util/sdp-manager.h"
 }
 
 using namespace media;

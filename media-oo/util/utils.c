@@ -2,6 +2,12 @@
 #include "utils.h"
 #include "libavformat/rtsp.h"
 
+int64_t
+get_pts(int64_t time, AVRational clock_rate)
+{
+	return (time * clock_rate.den) / (clock_rate.num * 1000);
+}
+
 int
 get_local_port(URLContext *urlContext)
 {
