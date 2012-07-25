@@ -5,6 +5,6 @@
 #include <libavformat/avformat.h>
 
 int get_local_port(URLContext *urlContext);
-void close_input(AVFormatContext *s);
+void close_context(AVFormatContext *s);
 
 #endif /* __UTILS_H__ */

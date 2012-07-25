@@ -59,62 +59,24 @@ MediaPort::getConnection()
 void
 MediaPort::closeContext(AVFormatContext *s)
 {
-//	RTSPState *rt;
-//	RTSPStream *rtsp_st;
-//	int i;
-
-	if (!s)
-		return;
-
-	// if is output
-	if (s->oformat && s->pb) { //  && (s->pb->opaque == _urlContext)) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free output");
-		//free_connection(s->pb->opaque);
-//		this->close();
-		s->pb->opaque = NULL;
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "closeContext %d s: %p s->pb: %p", __LINE__, s, s->pb);
-		if (!(s->oformat->flags & AVFMT_NOFILE))
-			avio_close(s->pb);
-		av_free(s);
-	}
-
-	// if is input
-	if (s->iformat && s->priv_data) {
-/*		rt = (RTSPState*)(s->priv_data);
-		for (i = 0; i < rt->nb_rtsp_streams; i++) {
-			rtsp_st = (RTSPStream*)(rt->rtsp_streams[i]);
-			media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free input");
-			if (rtsp_st->rtp_handle == _urlContext)
-				//free_connection(rtsp_st->rtp_handle);
-				this->close();
-			rtsp_st->rtp_handle = NULL;
-		}
-*/
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "free input");
-		close_input(s);
-		//av_close_input_file(s);
-	}
+	close_context(s);
 }
 
 int
 MediaPort::close()
 {
 	int ret;
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d", __LINE__);
+
 	_mutex->lock();
 	if (--_n_users == 0) {
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d _formatContext: %p _formatContext->pb: %p", __LINE__, _formatContext, _formatContext->pb);
 		avio_close(_formatContext->pb);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d", __LINE__);
 		avformat_free_context(_formatContext);
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d", __LINE__);
 		_formatContext = NULL;
 		_urlContext = NULL;
 	}
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d", __LINE__);
 	ret = _n_users;
 	_mutex->unlock();
-media_log(MEDIA_LOG_DEBUG, LOG_TAG, "close %d", __LINE__);
+
 	return ret;
 }
 
