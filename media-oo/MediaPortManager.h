@@ -8,8 +8,8 @@
 namespace media {
 	class MediaPortManager : public Media {
 	public:
-		static MediaPort* createMediaPort();
-		static MediaPort* createMediaPort(int port);
+		static MediaPort* takeMediaPort();
+		static MediaPort* takeMediaPort(int port);
 		static int releaseMediaPort(MediaPort *mediaPort);
 	};
 }

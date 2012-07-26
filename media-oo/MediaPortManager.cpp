@@ -4,13 +4,13 @@
 using namespace media;
 
 MediaPort*
-MediaPortManager::createMediaPort()
+MediaPortManager::takeMediaPort()
 {
 	return new MediaPort();
 }
 
 MediaPort*
-MediaPortManager::createMediaPort(int port)
+MediaPortManager::takeMediaPort(int port)
 {
 	return new MediaPort(port);
 }
