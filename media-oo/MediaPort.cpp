@@ -20,7 +20,7 @@ MediaPort::MediaPort(int port)
 	char rtp[256];
 
 	LOG_TAG = "media-port";
-	snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0?localport=%d", port);
+	snprintf(rtp, sizeof(rtp), "rtp://0.0.0.0:0?localport=%d", port);
 	_formatContext = open(rtp);
 	_n_users = 1;
 	_mutex = new Lock();
