@@ -31,6 +31,7 @@ namespace media {
 				MediaPort* mediaPort);
 		~AudioTx();
 		int putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time);
+		int getFrameSize();
 	private:
 		AVStream* addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 							int sample_rate, int bit_rate);

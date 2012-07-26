@@ -114,7 +114,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 		goto end;
 	}
 
-	urlContext = _mediaPort->getConnection();//(URLContext*)get_video_connection(0);
+	urlContext = _mediaPort->getConnection();
 	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG,
 			  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);

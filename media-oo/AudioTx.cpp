@@ -99,7 +99,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 		goto end;
 	}
 
-	urlContext = _mediaPort->getConnection();//(URLContext*)get_audio_connection(0);
+	urlContext = _mediaPort->getConnection();
 	if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
 		goto end;
@@ -159,32 +159,6 @@ AudioTx::~AudioTx()
 }
 
 int
-AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples, int64_t time)
-{
-	AVCodecContext *c;
-	AVPacket pkt;
-	av_init_packet(&pkt);
-	int ret;
-
-	c = st->codec;
-
-	pkt.size = avcodec_encode_audio(c, _audio_outbuf, _frame_size, samples);
-	pkt.pts = get_pts(time, st->time_base);
-	pkt.flags |= AV_PKT_FLAG_KEY;
-	pkt.stream_index = st->index;
-	pkt.data = _audio_outbuf;
-
-	/* write the compressed frame in the media file */
-	ret = av_write_frame(oc, &pkt);
-	if (ret != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
-		return ret;
-	}
-
-	return pkt.size;
-}
-
-int
 AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
 {
 	int i, ret, nframes, total_size;
@@ -211,6 +185,12 @@ AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
 end:
 	_mutex->unlock();
 	return ret;
+}
+
+int
+AudioTx::getFrameSize()
+{
+	return _frame_size;
 }
 
 AVStream*
@@ -270,4 +250,30 @@ AudioTx::openAudio()
 	_audio_outbuf = (uint8_t*)av_malloc(_audio_outbuf_size);
 
 	return 0;
+}
+
+int
+AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples, int64_t time)
+{
+	AVCodecContext *c;
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	int ret;
+
+	c = st->codec;
+
+	pkt.size = avcodec_encode_audio(c, _audio_outbuf, _frame_size, samples);
+	pkt.pts = get_pts(time, st->time_base);
+	pkt.flags |= AV_PKT_FLAG_KEY;
+	pkt.stream_index = st->index;
+	pkt.data = _audio_outbuf;
+
+	/* write the compressed frame in the media file */
+	ret = av_write_frame(oc, &pkt);
+	if (ret != 0) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
+		return ret;
+	}
+
+	return pkt.size;
 }
