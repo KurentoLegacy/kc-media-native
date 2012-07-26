@@ -55,7 +55,7 @@ MediaRx::openFormatContext(AVFormatContext **c)
 	int ret;
 	char buf[256];
 
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sdp: %s", _sdp);
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "sdp: %s", _sdp);
 
 	urlContext = _mediaPort->getConnection();
 
