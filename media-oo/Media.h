@@ -6,12 +6,14 @@ extern "C" {
 #include <util/log.h>
 }
 
+#include "MediaException.h"
+
 namespace media {
 	class Media {
 	protected:
 		const char* LOG_TAG;
 	public:
-		Media();
+		Media() throw(MediaException);
 		~Media();
 	};
 }

@@ -94,17 +94,19 @@ set_interrrupt_cb(int i)
 }
 
 //TODO: ¿methods as synchronized?
-Media::Media()
+Media::Media() throw(MediaException)
 {
+	LOG_TAG = "media";
 	if(!initialized) {
 		av_log_set_callback(media_av_log);
 		av_register_all();
-		if (av_lockmgr_register(lockmgr) !=0)
+		if (av_lockmgr_register(lockmgr) !=0) {
 			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
+			throw MediaException("Couldn't init media");
+		}
 		avio_set_interrupt_cb(media_interrupt_cb);
 		initialized = 1;
 	}
-	LOG_TAG = "media";
 	set_interrrupt_cb(0);
 }
 
