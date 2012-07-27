@@ -128,82 +128,83 @@ VideoTx::~VideoTx()
 /**
  * see ffmpeg.c
  */
-int
+void
 VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
+								throw(MediaException)
 {
 	int out_size, ret;
 	AVCodecContext *c;
 	struct SwsContext *img_convert_ctx;
 
 	_mutex->lock();
-	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No video initiated.");
-		ret = -1;
-		goto end;
-	}
 
-	avpicture_fill((AVPicture *)_tmp_picture, frame,
-						_src_pix_fmt, width, height);
+	try {
+		if (!_oc)
+			throw MediaException("No video initiated.");
 
-	c = _video_st->codec;
+		avpicture_fill((AVPicture *)_tmp_picture, frame,
+							_src_pix_fmt, width, height);
 
-	img_convert_ctx = sws_getContext(width, height, _src_pix_fmt,
-					c->width, c->height, c->pix_fmt,
-					SWS_FLAGS, NULL, NULL, NULL);
-	if (img_convert_ctx == NULL) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Cannot initialize the conversion context");
-		ret = -1;
-		goto end;
-	}
+		c = _video_st->codec;
 
-	sws_scale(img_convert_ctx, (const uint8_t* const*)_tmp_picture->data, _tmp_picture->linesize,
-		0, c->height, _picture->data, _picture->linesize);
+		img_convert_ctx = sws_getContext(width, height, _src_pix_fmt,
+						c->width, c->height, c->pix_fmt,
+						SWS_FLAGS, NULL, NULL, NULL);
+		if (img_convert_ctx == NULL)
+			throw MediaException("Cannot initialize the conversion context");
 
-	sws_freeContext(img_convert_ctx);
+		sws_scale(img_convert_ctx, (const uint8_t* const*)_tmp_picture->data, _tmp_picture->linesize,
+			0, c->height, _picture->data, _picture->linesize);
 
-	if (_oc->oformat->flags & AVFMT_RAWPICTURE) {
-		/* raw video case. The API will change slightly in the near
-		futur for that */
-		AVPacket pkt;
-		av_init_packet(&pkt);
-		pkt.flags |= AV_PKT_FLAG_KEY;
-		pkt.stream_index= _video_st->index;
-		pkt.data= (uint8_t *)_picture;
-		pkt.size= sizeof(AVPicture);
-		ret = av_interleaved_write_frame(_oc, &pkt);
-	} else {
-		_picture->pts = _n_frame++;
-		/* encode the image */
-		out_size = avcodec_encode_video(c, _video_outbuf, _video_outbuf_size, _picture);
-		/* if zero size, it means the image was buffered */
-		if (out_size > 0) {
+		sws_freeContext(img_convert_ctx);
+
+		if (_oc->oformat->flags & AVFMT_RAWPICTURE) {
+			/* raw video case. The API will change slightly in the near
+			futur for that */
 			AVPacket pkt;
 			av_init_packet(&pkt);
-			pkt.pts = get_pts(time, _video_st->time_base);
-			if(c->coded_frame->key_frame)
-				pkt.flags |= AV_PKT_FLAG_KEY;
+			pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= _video_st->index;
-			pkt.data= _video_outbuf;
-			pkt.size= out_size;
-
-			/* write the compressed frame in the media file */
-			ret = av_write_frame(_oc, &pkt);
+			pkt.data= (uint8_t *)_picture;
+			pkt.size= sizeof(AVPicture);
+			ret = av_interleaved_write_frame(_oc, &pkt);
 		} else {
-			ret = 0;
+			_picture->pts = _n_frame++;
+			/* encode the image */
+			out_size = avcodec_encode_video(c, _video_outbuf, _video_outbuf_size, _picture);
+			/* if zero size, it means the image was buffered */
+			if (out_size > 0) {
+				AVPacket pkt;
+				av_init_packet(&pkt);
+				pkt.pts = get_pts(time, _video_st->time_base);
+				if(c->coded_frame->key_frame)
+					pkt.flags |= AV_PKT_FLAG_KEY;
+				pkt.stream_index= _video_st->index;
+				pkt.data= _video_outbuf;
+				pkt.size= out_size;
+
+				/* write the compressed frame in the media file */
+				ret = av_write_frame(_oc, &pkt);
+			} else {
+				ret = 0;
+			}
 		}
+
+		if (ret < 0)
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing video frame");
+		else
+			ret = out_size;
+
+		if (ret < 0)
+			throw MediaException("Could not write video frame");
+	}
+	catch(MediaException &e) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", e.what());
+		_mutex->unlock();
+		throw;
 	}
 
-	if (ret < 0)
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing video frame");
-	else
-		ret = out_size;
-
-	if (ret < 0)
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
-
-end:
 	_mutex->unlock();
-	return ret;
 }
 
 
