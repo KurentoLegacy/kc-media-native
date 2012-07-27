@@ -30,10 +30,10 @@ namespace media {
 
 	public:
 		MediaRx(MediaPort* mediaPort, const char* sdp, int max_delay,
-							CodecType codec_type);
+					CodecType codec_type) throw(MediaException);
 		virtual ~MediaRx();
 
-		int start();
+		void start() throw(MediaException);
 		int stop();
 
 	protected:
@@ -42,7 +42,8 @@ namespace media {
 		virtual void processPacket(AVPacket avpkt, int64_t rx_time) = 0;
 
 	private:
-		int openFormatContext(AVFormatContext **c);
+		void openFormatContext(AVFormatContext **c) throw(MediaException);
+		void release();
 	};
 }
 
