@@ -20,154 +20,109 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 			int frame_rate_num, int frame_rate_den,
 			int bit_rate, int gop_size, enum CodecID codec_id,
 			int payload_type, enum PixelFormat src_pix_fmt,
-			MediaPort* mediaPort)
+			MediaPort* mediaPort) throw(MediaException)
 : Media()
 {
 	int ret;
+	char buf[256];
 	URLContext *urlContext;
 	RTPMuxContext *rptmc;
 
 	LOG_TAG = "media-video-tx";
 	_mediaPort = mediaPort;
 
+	try {
 #ifndef USE_X264
-	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
-	/* TODO: Improve this hack to disable H264 */
-	if (codec_id == CODEC_ID_H264) {
-		media_log(MEDIA_LOG_WARN, LOG_TAG, "H264 not supported");
-		ret = -1;
-		goto end;
-	}
+		media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
+		/* TODO: Improve this hack to disable H264 */
+		if (codec_id == CODEC_ID_H264)
+			throw MediaException("H264 not supported");
 #endif
 
-	_src_pix_fmt = src_pix_fmt;
+		_src_pix_fmt = src_pix_fmt;
 
-	_fmt = av_guess_format(NULL, outfile, NULL);
-	if (!_fmt) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG,
-			"Could not deduce output format from file extension: using RTP.");
-		_fmt = av_guess_format("rtp", NULL, NULL);
-	}
-	if (!_fmt) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG,
-					"Could not find suitable output format");
-		ret = -1;
-		goto end;
-	}
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", _fmt->name);
-	_fmt->video_codec = codec_id;
-
-	/* allocate the output media context */
-	_oc = avformat_alloc_context();
-	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG,
-					"Memory error: Could not alloc context");
-		ret = -2;
-		goto end;
-	}
-	_oc->oformat = _fmt;
-	snprintf(_oc->filename, sizeof(_oc->filename), "%s", outfile);
-
-	/* add the  video stream using the default format codecs
-	and initialize the codecs */
-	_video_st = NULL;
-
-	if (_fmt->video_codec != CODEC_ID_NONE) {
-		_video_st = VideoTx::addVideoStream(_fmt->video_codec, width, height,
-				frame_rate_num, frame_rate_den, bit_rate, gop_size);
-		if(!_video_st) {
-			ret = -3;
-			goto end;
+		_fmt = av_guess_format(NULL, outfile, NULL);
+		if (!_fmt) {
+			media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+				"Could not deduce output format from file extension: using RTP.");
+			_fmt = av_guess_format("rtp", NULL, NULL);
 		}
-	}
+		if (!_fmt)
+			throw MediaException("Could not find suitable output format");
 
-	/* set the output parameters (must be done even if no
-	parameters). */
-	if (av_set_parameters(_oc, NULL) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
-		ret = -4;
-		goto end;
-	}
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", _fmt->name);
+		_fmt->video_codec = codec_id;
 
-	av_dump_format(_oc, 0, outfile, 1);
+		/* allocate the output media context */
+		_oc = avformat_alloc_context();
+		if (!_oc)
+			throw MediaException("Memory error: Could not alloc context");
 
-	/* now that all the parameters are set, we can open the
-	video codec and allocate the necessary encode buffers */
-	if (_video_st) {
-		if((ret = VideoTx::openVideo()) < 0) {
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open video");
-			goto end;
+		_oc->oformat = _fmt;
+		snprintf(_oc->filename, sizeof(_oc->filename), "%s", outfile);
+
+		/* add the  video stream using the default format codecs
+		and initialize the codecs */
+		_video_st = NULL;
+
+		if (_fmt->video_codec != CODEC_ID_NONE) {
+			_video_st = VideoTx::addVideoStream(_fmt->video_codec, width, height,
+					frame_rate_num, frame_rate_den, bit_rate, gop_size);
+			if(!_video_st)
+				throw MediaException("Can not add video stream");
 		}
-	}
 
-	/* open the output file, if needed */
-	if (!(_fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&_oc->pb, outfile, URL_WRONLY)) < 0) {
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
-			goto end;
+		/* set the output parameters (must be done even if no
+		parameters). */
+		if (av_set_parameters(_oc, NULL) < 0)
+			throw MediaException("Invalid output format parameters");
+
+		av_dump_format(_oc, 0, outfile, 1);
+
+		/* now that all the parameters are set, we can open the
+		video codec and allocate the necessary encode buffers */
+		if (_video_st)
+			openVideo();
+
+		/* open the output file, if needed */
+		if (!(_fmt->flags & AVFMT_NOFILE)) {
+			if ((ret = avio_open(&_oc->pb, outfile, URL_WRONLY)) < 0) {
+				av_strerror(ret, buf, sizeof(buf));
+				throw MediaException("Could not open '%s': %s", outfile, buf);
+			}
 		}
+
+		//Free old URLContext
+		if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0)
+			throw MediaException("Could not free URLContext");
+
+		urlContext = _mediaPort->getConnection();
+		if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
+			av_strerror(ret, buf, sizeof(buf));
+			throw MediaException("Could not open '%s': %s", outfile, buf);
+		}
+
+		_oc->pb->opaque = urlContext;
+
+		/* write the stream header, if any */
+		av_write_header(_oc);
+
+		rptmc = (RTPMuxContext*)_oc->priv_data;
+		rptmc->payload_type = payload_type;
+
+		_n_frame = 0;
+		_mutex = new Lock();
 	}
-
-	//Free old URLContext
-	if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
-		goto end;
+	catch(MediaException &e) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", e.what());
+		release();
+		throw;
 	}
-
-	urlContext = _mediaPort->getConnection();
-	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG,
-			  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
-		goto end;
-	}
-
-	_oc->pb->opaque = urlContext;
-
-	/* write the stream header, if any */
-	av_write_header(_oc);
-
-	rptmc = (RTPMuxContext*)_oc->priv_data;
-	rptmc->payload_type = payload_type;
-
-	_n_frame = 0;
-	ret = 0;
-
-end:
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
-	_mutex = new Lock();
 }
 
 VideoTx::~VideoTx()
 {
-	int i;
-
-	_mutex->lock();
-	/* write the trailer, if any.  the trailer must be written
-	* before you close the CodecContexts open when you wrote the
-	* header; otherwise write_trailer may try to use memory that
-	* was freed on av_codec_close() */
-	if (_oc) {
-		av_write_trailer(_oc);
-		/* close codec */
-		if (_video_st) {
-			avcodec_close(_video_st->codec);
-			av_free(_picture_buf);
-			av_free(_picture);
-			av_free(_tmp_picture);
-			av_free(_video_outbuf);
-		}
-		/* free the streams */
-		for(i = 0; i < _oc->nb_streams; i++) {
-			av_freep(&_oc->streams[i]->codec);
-			av_freep(&_oc->streams[i]);
-		}
-		_mediaPort->closeContext(_oc);
-		MediaPortManager::releaseMediaPort(_mediaPort);
-		_oc = NULL;
-	}
-
-	_mutex->unlock();
-	delete _mutex;
+	release();
 }
 
 /**
@@ -351,11 +306,10 @@ VideoTx::addVideoStream(enum CodecID codec_id, int width, int height,
 }
 
 
-int
-VideoTx::openVideo()
+void
+VideoTx::openVideo() throw(MediaException)
 {
 	int ret, size;
-
 	AVCodec *codec;
 	AVCodecContext *c;
 
@@ -364,14 +318,16 @@ VideoTx::openVideo()
 	/* find the video encoder */
 	codec = avcodec_find_encoder(c->codec_id);
 	if (!codec) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
-		return -1;
+/*		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
+		return -1; */
+		throw MediaException("Codec not found");
 	}
 
 	/* open the codec */
 	if ((ret = avcodec_open(c, codec)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
-		return ret;
+/*		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
+		return ret; */
+		throw MediaException("Could not open codec");
 	}
 
 	_video_outbuf = NULL;
@@ -389,8 +345,9 @@ VideoTx::openVideo()
 	/* allocate the encoded raw picture */
 	_picture = avcodec_alloc_frame();
 	if (!_picture) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate picture");
-		return -3;
+/*		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate picture");
+		return -3; */
+		throw MediaException("Could not allocate picture");
 	}
 	size = avpicture_get_size(c->pix_fmt, c->width, c->height);
 	_picture_buf = (uint8_t*)av_malloc(size);
@@ -399,9 +356,42 @@ VideoTx::openVideo()
 
 	_tmp_picture =  avcodec_alloc_frame();
 	if (!_tmp_picture) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate temporary picture");
-		return -4;
+/*		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate temporary picture");
+		return -4; */
+		throw MediaException("Could not allocate temporary picture");
+	}
+}
+
+void
+VideoTx::release()
+{
+	int i;
+
+	_mutex->lock();
+	/* write the trailer, if any.  the trailer must be written
+	* before you close the CodecContexts open when you wrote the
+	* header; otherwise write_trailer may try to use memory that
+	* was freed on av_codec_close() */
+	if (_oc) {
+		av_write_trailer(_oc);
+		/* close codec */
+		if (_video_st) {
+			avcodec_close(_video_st->codec);
+			av_free(_picture_buf);
+			av_free(_picture);
+			av_free(_tmp_picture);
+			av_free(_video_outbuf);
+		}
+		/* free the streams */
+		for(i = 0; i < _oc->nb_streams; i++) {
+			av_freep(&_oc->streams[i]->codec);
+			av_freep(&_oc->streams[i]);
+		}
+		_mediaPort->closeContext(_oc);
+		MediaPortManager::releaseMediaPort(_mediaPort);
+		_oc = NULL;
 	}
 
-	return 0;
+	_mutex->unlock();
+	delete _mutex;
 }

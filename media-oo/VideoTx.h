@@ -32,14 +32,15 @@ namespace media {
 			int frame_rate_num, int frame_rate_den,
 			int bit_rate, int gop_size, enum CodecID codec_id,
 			int payload_type, enum PixelFormat src_pix_fmt,
-			MediaPort* mediaPort);
+			MediaPort* mediaPort) throw(MediaException);
 		~VideoTx();
 		int putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time);
 	private:
 		AVStream* addVideoStream(enum CodecID codec_id,
 					int width, int height, int frame_rate_num,
 					int frame_rate_den, int bit_rate, int gop_size);
-		int openVideo();
+		void openVideo() throw(MediaException);
+		void release();
 	};
 }
 
