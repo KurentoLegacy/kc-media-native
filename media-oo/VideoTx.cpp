@@ -96,7 +96,7 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 			throw MediaException("Could not free URLContext");
 
 		urlContext = _mediaPort->getConnection();
-		if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
+		if ((ret=rtp_set_remote_url(urlContext, outfile)) < 0) {
 			av_strerror(ret, buf, sizeof(buf));
 			throw MediaException("Could not open '%s': %s", outfile, buf);
 		}
@@ -320,7 +320,7 @@ VideoTx::openVideo() throw(MediaException)
 	}
 
 	/* open the codec */
-	if ((ret = avcodec_open(c, codec)) < 0) {
+	if (avcodec_open(c, codec) < 0) {
 /*		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
 		return ret; */
 		throw MediaException("Could not open codec");

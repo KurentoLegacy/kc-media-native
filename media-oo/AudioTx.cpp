@@ -86,8 +86,10 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 			throw MediaException("Could not free URLContext");
 
 		urlContext = _mediaPort->getConnection();
-		if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0)
-			throw MediaException("Could not open '%s'", outfile);
+		if ((ret=rtp_set_remote_url(urlContext, outfile)) < 0) {
+			av_strerror(ret, buf, sizeof(buf));
+			throw MediaException("Could not open '%s': %s", outfile, buf);
+		}
 
 		_oc->pb->opaque = urlContext;
 
@@ -104,7 +106,7 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 			_frame_size = _audio_st->codec->frame_size;
 		else
 			_frame_size = sample_rate * DEFAULT_FRAME_SIZE / 1000;
-		ret = _frame_size;
+
 		media_log(MEDIA_LOG_INFO, LOG_TAG, "Audio frame size: %d", _frame_size);
 		_mutex = new Lock();
 	}
@@ -202,7 +204,7 @@ AudioTx::openAudio() throw(MediaException)
 	if (!codec)
 		throw MediaException("Codec not found");
 
-	if ((ret = avcodec_open(c, codec)) < 0)
+	if (avcodec_open(c, codec) < 0)
 		throw MediaException("Could not open codec");
 
 	_audio_outbuf_size = 100000;
