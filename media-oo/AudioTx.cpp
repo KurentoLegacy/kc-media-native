@@ -20,171 +20,134 @@ using namespace media;
 //TODO: methods as synchronized
 AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 				int sample_rate, int bit_rate, int payload_type,
-				MediaPort* mediaPort)
+				MediaPort* mediaPort) throw(MediaException)
 : Media()
 {
 	int ret;
+	char buf[256];
 	URLContext *urlContext;
 	RTPMuxContext *rptmc;
 
 	LOG_TAG = "media-audio-tx";
 	_mediaPort = mediaPort;
 
-	this->_fmt = av_guess_format(NULL, outfile, NULL);
-	if (!_fmt) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG,
-			"Could not deduce output format from file extension: using RTP.");
-		_fmt = av_guess_format("rtp", NULL, NULL);
-	}
-	if (!_fmt) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG,
-					"Could not find suitable output format");
-		ret = -1;
-		goto end;
-	}
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", _fmt->name);
-	_fmt->audio_codec = codec_id;
-
-
-	/* allocate the output media context */
-	_oc = avformat_alloc_context();
-	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG,
-					"Memory error: Could not alloc context");
-		ret = -2;
-		goto end;
-	}
-	_oc->oformat = _fmt;
-	snprintf(_oc->filename, sizeof(_oc->filename), "%s", outfile);
-
-	/* add the audio stream using the default format codecs
-	and initialize the codecs */
-	_audio_st = NULL;
-
-	if (_fmt->audio_codec != CODEC_ID_NONE) {
-		_audio_st = addAudioStream(_oc, _fmt->audio_codec, sample_rate, bit_rate);
-	}
-
-	/* set the output parameters (must be done even if no
-	parameters). */
-	if (av_set_parameters(_oc, NULL) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
-		ret = -3;
-		goto end;
-	}
-
-	av_dump_format(_oc, 0, outfile, 1);
-
-	/* now that all the parameters are set, we can open the
-	audio codec and allocate the necessary encode buffers */
-	if (_audio_st) {
-		if((ret = openAudio()) < 0) {
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open audio");
-			goto end;
+	try {
+		this->_fmt = av_guess_format(NULL, outfile, NULL);
+		if (!_fmt) {
+			media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+				"Could not deduce output format from file extension: using RTP.");
+			_fmt = av_guess_format("rtp", NULL, NULL);
 		}
-	}
+		if (!_fmt)
+			throw MediaException("Could not find suitable output format");
 
-	/* open the output file, if needed */
-	if (!(_fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&_oc->pb, outfile, URL_WRONLY)) < 0) {
-			media_log(MEDIA_LOG_ERROR, LOG_TAG,
-				  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
-			goto end;
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Format established: %s", _fmt->name);
+		_fmt->audio_codec = codec_id;
+
+		/* allocate the output media context */
+		_oc = avformat_alloc_context();
+		if (!_oc)
+			throw MediaException("Memory error: Could not alloc context");
+
+		_oc->oformat = _fmt;
+		snprintf(_oc->filename, sizeof(_oc->filename), "%s", outfile);
+
+		/* add the audio stream using the default format codecs
+		and initialize the codecs */
+		_audio_st = NULL;
+
+		if (_fmt->audio_codec != CODEC_ID_NONE)
+			_audio_st = addAudioStream(_oc, _fmt->audio_codec, sample_rate, bit_rate);
+		if(!_audio_st)
+			throw MediaException("Can not add audio stream");
+
+		/* set the output parameters (must be done even if no
+		parameters). */
+		if (av_set_parameters(_oc, NULL) < 0)
+			throw MediaException("Invalid output format parameters");
+
+		av_dump_format(_oc, 0, outfile, 1);
+
+		/* now that all the parameters are set, we can open the
+		audio codec and allocate the necessary encode buffers */
+		if (_audio_st)
+			openAudio();
+
+		/* open the output file, if needed */
+		if (!(_fmt->flags & AVFMT_NOFILE)) {
+			if ((ret = avio_open(&_oc->pb, outfile, URL_WRONLY)) < 0) {
+				av_strerror(ret, buf, sizeof(buf));
+				throw MediaException("Could not open '%s': %s", outfile, buf);
+			}
 		}
+
+		//Free old URLContext
+		if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0)
+			throw MediaException("Could not free URLContext");
+
+		urlContext = _mediaPort->getConnection();
+		if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0)
+			throw MediaException("Could not open '%s'", outfile);
+
+		_oc->pb->opaque = urlContext;
+
+		/* write the stream header, if any */
+		av_write_header(_oc);
+
+		rptmc = (RTPMuxContext*)_oc->priv_data;
+		rptmc->payload_type = payload_type;
+		rptmc->max_frames_per_packet = 1;
+
+		media_log(MEDIA_LOG_INFO, LOG_TAG, "Frames per packet: %d", rptmc->max_frames_per_packet);
+
+		if(_audio_st->codec->frame_size > 1)
+			_frame_size = _audio_st->codec->frame_size;
+		else
+			_frame_size = sample_rate * DEFAULT_FRAME_SIZE / 1000;
+		ret = _frame_size;
+		media_log(MEDIA_LOG_INFO, LOG_TAG, "Audio frame size: %d", _frame_size);
+		_mutex = new Lock();
 	}
-
-	//Free old URLContext
-	if ((ret=ffurl_close((URLContext*)_oc->pb->opaque)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
-		goto end;
+	catch(MediaException &e) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", e.what());
+		release();
+		throw;
 	}
-
-	urlContext = _mediaPort->getConnection();
-	if ((ret = rtp_set_remote_url (urlContext, outfile)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
-		goto end;
-	}
-
-	_oc->pb->opaque = urlContext;
-
-	/* write the stream header, if any */
-	av_write_header(_oc);
-
-	rptmc = (RTPMuxContext*)_oc->priv_data;
-	rptmc->payload_type = payload_type;
-	rptmc->max_frames_per_packet = 1;
-
-	media_log(MEDIA_LOG_INFO, LOG_TAG, "Frames per packet: %d", rptmc->max_frames_per_packet);
-
-	if(_audio_st->codec->frame_size > 1)
-		_frame_size = _audio_st->codec->frame_size;
-	else
-		_frame_size = sample_rate * DEFAULT_FRAME_SIZE / 1000;
-	ret = _frame_size;
-	media_log(MEDIA_LOG_INFO, LOG_TAG, "Audio frame size: %d", _frame_size);
-
-end:
-	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
-	_mutex = new Lock();
 }
 
 AudioTx::~AudioTx()
 {
-	int i;
-
-	_mutex->lock();
-	/* write the trailer, if any.  the trailer must be written
-	* before you close the CodecContexts open when you wrote the
-	* header; otherwise write_trailer may try to use memory that
-	* was freed on av_codec_close() */
-	if(_oc) {
-		av_write_trailer(_oc);
-		/* close codec */
-		if (_audio_st) {
-			avcodec_close(_audio_st->codec);
-			av_free(_audio_outbuf);
-		}
-		/* free the streams */
-		for(i = 0; i < _oc->nb_streams; i++) {
-			av_freep(&_oc->streams[i]->codec);
-			av_freep(&_oc->streams[i]);
-		}
-		_mediaPort->closeContext(_oc);
-		MediaPortManager::releaseMediaPort(_mediaPort);
-		_oc = NULL;
-	}
-
-	_mutex->unlock();
-	delete _mutex;
+	release();
 }
 
 int
-AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time)
+AudioTx::putAudioSamplesTx(int16_t* samples, int n_samples,
+					int64_t time) throw(MediaException)
 {
 	int i, ret, nframes, total_size;
 
 	_mutex->lock();
 	total_size = 0;
-	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No audio initiated.");
-		ret = -1;
-		goto end;
-	}
 
-	nframes = n_samples / _frame_size;
-	for (i=0; i<nframes; i++) {
-		if( (ret=writeAudioFrame(_oc, _audio_st, &samples[i*_frame_size], time)) < 0) {
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write audio frame");
-			break;
+	try {
+		if (!_oc)
+			throw MediaException("No audio initiated.");
+
+		nframes = n_samples / _frame_size;
+		for (i=0; i<nframes; i++) {
+			ret = writeAudioFrame(_oc, _audio_st,
+						&samples[i*_frame_size], time);
+			total_size += ret;
 		}
-		total_size += ret;
 	}
-
-	ret = total_size;
-
+	catch(MediaException &e) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", e.what());
+		_mutex->unlock();
+		throw;
+	}
 end:
 	_mutex->unlock();
-	return ret;
+	return total_size;
 }
 
 int
@@ -226,8 +189,8 @@ AudioTx::addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 	return st;
 }
 
-int
-AudioTx::openAudio()
+void
+AudioTx::openAudio() throw(MediaException)
 {
 	AVCodec *codec;
 	AVCodecContext *c;
@@ -236,30 +199,24 @@ AudioTx::openAudio()
 	c = _audio_st->codec;
 
 	codec = avcodec_find_encoder(c->codec_id);
-	if (!codec) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
-		return -1;
-	}
+	if (!codec)
+		throw MediaException("Codec not found");
 
-	if ((ret = avcodec_open(c, codec)) < 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
-		return ret;
-	}
+	if ((ret = avcodec_open(c, codec)) < 0)
+		throw MediaException("Could not open codec");
 
 	_audio_outbuf_size = 100000;
 	_audio_outbuf = (uint8_t*)av_malloc(_audio_outbuf_size);
-
-	return 0;
 }
 
 int
-AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples, int64_t time)
+AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples,
+						int64_t time) throw(MediaException)
 {
 	AVCodecContext *c;
 	AVPacket pkt;
-	av_init_packet(&pkt);
-	int ret;
 
+	av_init_packet(&pkt);
 	c = st->codec;
 
 	pkt.size = avcodec_encode_audio(c, _audio_outbuf, _frame_size, samples);
@@ -269,11 +226,39 @@ AudioTx::writeAudioFrame(AVFormatContext *oc, AVStream *st, int16_t *samples, in
 	pkt.data = _audio_outbuf;
 
 	/* write the compressed frame in the media file */
-	ret = av_write_frame(oc, &pkt);
-	if (ret != 0) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing audio frame");
-		return ret;
-	}
+	if (av_write_frame(oc, &pkt) != 0)
+		throw MediaException("Error while writing audio frame");
 
 	return pkt.size;
+}
+
+void
+AudioTx::release()
+{
+	int i;
+
+	_mutex->lock();
+	/* write the trailer, if any.  the trailer must be written
+	* before you close the CodecContexts open when you wrote the
+	* header; otherwise write_trailer may try to use memory that
+	* was freed on av_codec_close() */
+	if(_oc) {
+		av_write_trailer(_oc);
+		/* close codec */
+		if (_audio_st) {
+			avcodec_close(_audio_st->codec);
+			av_free(_audio_outbuf);
+		}
+		/* free the streams */
+		for(i = 0; i < _oc->nb_streams; i++) {
+			av_freep(&_oc->streams[i]->codec);
+			av_freep(&_oc->streams[i]);
+		}
+		_mediaPort->closeContext(_oc);
+		MediaPortManager::releaseMediaPort(_mediaPort);
+		_oc = NULL;
+	}
+
+	_mutex->unlock();
+	delete _mutex;
 }

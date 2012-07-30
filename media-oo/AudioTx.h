@@ -28,16 +28,18 @@ namespace media {
 	public:
 		AudioTx(const char* outfile, enum CodecID codec_id,
 				int sample_rate, int bit_rate, int payload_type,
-				MediaPort* mediaPort);
+				MediaPort* mediaPort) throw(MediaException);
 		~AudioTx();
-		int putAudioSamplesTx(int16_t* samples, int n_samples, int64_t time);
+		int putAudioSamplesTx(int16_t* samples, int n_samples,
+					int64_t time) throw(MediaException);
 		int getFrameSize();
 	private:
 		AVStream* addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 							int sample_rate, int bit_rate);
-		int openAudio();
+		void openAudio() throw(MediaException);
 		int writeAudioFrame(AVFormatContext *oc, AVStream *st,
-						int16_t *samples, int64_t time);
+			int16_t *samples, int64_t time) throw(MediaException);
+		void release();
 	};
 }
 
