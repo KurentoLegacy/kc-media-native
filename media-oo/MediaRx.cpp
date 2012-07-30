@@ -63,7 +63,7 @@ MediaRx::openFormatContext(AVFormatContext **c) throw(MediaException)
 
 	urlContext = _mediaPort->getConnection();
 
-	for(;;) {
+	while(this->getReceive()) {
 		pFormatCtx = avformat_alloc_context();
 		pFormatCtx->max_delay = _max_delay * 1000;
 		ap->prealloced_context = 1;
@@ -81,7 +81,7 @@ MediaRx::openFormatContext(AVFormatContext **c) throw(MediaException)
 			media_log(MEDIA_LOG_WARN, LOG_TAG,
 				"Couldn't find stream information: %s", buf);
 			_mediaPort->closeContext(pFormatCtx);
-
+			pFormatCtx = NULL;
 		} else
 			break;
 	}
@@ -112,6 +112,9 @@ MediaRx::start() throw(MediaException)
 	try {
 		this->setReceive(true);
 		openFormatContext(&_pFormatCtx);
+
+		if (!_pFormatCtx)
+			throw MediaException("Could not open context");
 
 		// Find the first stream
 		_stream = -1;
