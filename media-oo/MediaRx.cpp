@@ -155,7 +155,7 @@ MediaRx::start() throw(MediaException)
 		}
 	}
 	catch(MediaException &e) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", &e, e.what());
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "%s", e.what());
 		release();
 		_freeLock->unlock();
 		throw;
