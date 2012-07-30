@@ -131,7 +131,11 @@ MediaRx::start() throw(MediaException)
 		_pDecodecCtx = _pFormatCtx->streams[_stream]->codec;
 
 		// Find the decoder for the stream
-		pDecodec = avcodec_find_decoder(_pDecodecCtx->codec_id);
+		if(_pDecodecCtx->codec_id == CODEC_ID_AMR_NB)
+			pDecodec = avcodec_find_decoder_by_name("libopencore_amrnb");
+		else
+			pDecodec = avcodec_find_decoder(_pDecodecCtx->codec_id);
+
 		if (pDecodec == NULL)
 			throw MediaException("Unsupported codec");
 
