@@ -34,7 +34,7 @@ namespace media {
 			int payload_type, enum PixelFormat src_pix_fmt,
 			MediaPort* mediaPort) throw(MediaException);
 		~VideoTx();
-		void putVideoFrameTx(uint8_t* frame, int width, int height,
+		int putVideoFrameTx(uint8_t* frame, int width, int height,
 						int64_t time) throw(MediaException);
 	private:
 		AVStream* addVideoStream(enum CodecID codec_id,

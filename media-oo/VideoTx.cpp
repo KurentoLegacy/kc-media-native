@@ -65,12 +65,11 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 		and initialize the codecs */
 		_video_st = NULL;
 
-		if (_fmt->video_codec != CODEC_ID_NONE) {
+		if (_fmt->video_codec != CODEC_ID_NONE)
 			_video_st = VideoTx::addVideoStream(_fmt->video_codec, width, height,
 					frame_rate_num, frame_rate_den, bit_rate, gop_size);
-			if(!_video_st)
-				throw MediaException("Can not add video stream");
-		}
+		if(!_video_st)
+			throw MediaException("Can not add video stream");
 
 		/* set the output parameters (must be done even if no
 		parameters). */
@@ -128,7 +127,7 @@ VideoTx::~VideoTx()
 /**
  * see ffmpeg.c
  */
-void
+int
 VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 								throw(MediaException)
 {
@@ -191,11 +190,6 @@ VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 		}
 
 		if (ret < 0)
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing video frame");
-		else
-			ret = out_size;
-
-		if (ret < 0)
 			throw MediaException("Could not write video frame");
 	}
 	catch(MediaException &e) {
@@ -205,6 +199,7 @@ VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 	}
 
 	_mutex->unlock();
+	return out_size;
 }
 
 
