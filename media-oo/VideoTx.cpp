@@ -12,8 +12,6 @@ extern "C" {
 #include "libavformat/url.h"
 }
 
-static int SWS_FLAGS = SWS_BICUBIC;
-
 using namespace media;
 //TODO: methods as synchronized
 VideoTx::VideoTx(const char* outfile, int width, int height,
@@ -148,12 +146,12 @@ VideoTx::putVideoFrameTx(uint8_t* frame, int width, int height, int64_t time)
 
 		img_convert_ctx = sws_getContext(width, height, _src_pix_fmt,
 						c->width, c->height, c->pix_fmt,
-						SWS_FLAGS, NULL, NULL, NULL);
+						SWS_BICUBIC, NULL, NULL, NULL);
 		if (img_convert_ctx == NULL)
 			throw MediaException("Cannot initialize the conversion context");
 
 		sws_scale(img_convert_ctx, (const uint8_t* const*)_tmp_picture->data, _tmp_picture->linesize,
-			0, c->height, _picture->data, _picture->linesize);
+			0, height, _picture->data, _picture->linesize);
 
 		sws_freeContext(img_convert_ctx);
 
