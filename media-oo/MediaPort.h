@@ -22,6 +22,7 @@ namespace media {
 	public:
 		MediaPort();
 		MediaPort(int port);
+		MediaPort(const char* address, int port);
 		~MediaPort();
 
 		int getPort();

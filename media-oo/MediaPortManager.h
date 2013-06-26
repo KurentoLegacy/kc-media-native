@@ -10,6 +10,7 @@ namespace media {
 	public:
 		static MediaPort* takeMediaPort();
 		static MediaPort* takeMediaPort(int port);
+		static MediaPort* takeMediaPort(const char* address, int port);
 		static int releaseMediaPort(MediaPort *mediaPort);
 	};
 }
