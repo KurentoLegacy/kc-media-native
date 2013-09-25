@@ -17,17 +17,16 @@
 
 /**
  * 
- * @author Miguel París Díaz
- * 
+ * @author Miguel París Díaz * 
  */
 
+#include "video-tx.h"
+#include <util/log.h>
 #include <my-cmdutils.h>
 #include <init-media.h>
 #include <socket-manager.h>
 
-#include <jni.h>
 #include <pthread.h>
-#include <android/log.h>
 
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
@@ -41,15 +40,13 @@
 		libavcodec/api-example.c
 */
 
-static char buf[256]; //Log
-static char* LOG_TAG = "NDK-video-tx";
+static char* LOG_TAG = "media-video-tx";
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int sws_flags = SWS_BICUBIC;
 
 enum {
 	OUTBUF_SIZE = 800*1024,
-	SRC_PIX_FMT = PIX_FMT_NV21,
 };
 
 //Coupled with Java
@@ -68,9 +65,6 @@ static int video_outbuf_size;
 static AVOutputFormat *fmt;
 static AVFormatContext *oc;
 static AVStream *video_st;
-
-static uint8_t *picture_buf;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //INIT VIDEO
@@ -99,13 +93,13 @@ static int open_video(AVFormatContext *oc, AVStream *st)
 	/* find the video encoder */
 	codec = avcodec_find_encoder(c->codec_id);
 	if (!codec) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Codec not found");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
 		return -1;
 	}
 
 	/* open the codec */
 	if ((ret = avcodec_open(c, codec)) < 0) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not open codec");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
 		return ret;
 	}
 	
@@ -128,7 +122,7 @@ static int open_video(AVFormatContext *oc, AVStream *st)
 	
 	
 	if (!picture) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not allocate picture");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate picture");
 		return -3;
 	}
 
@@ -137,7 +131,7 @@ static int open_video(AVFormatContext *oc, AVStream *st)
 	output format */
 	tmp_picture =  alloc_picture(PIX_FMT_YUV420P, c->width, c->height);
 	if (!tmp_picture) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not allocate temporary picture");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not allocate temporary picture");
 		return -4;
 	}
 	
@@ -157,7 +151,7 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id, in
 	
 	st = av_new_stream(oc, 0);
 	if (!st) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not alloc stream");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not alloc stream");
 		return NULL;
 	}
 	
@@ -225,68 +219,45 @@ static AVStream *add_video_stream(AVFormatContext *oc, enum CodecID codec_id, in
 		c->max_qdiff = 4;
 	}
 
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "bit_rate: %d", c->bit_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rc_min_rate: %d", c->rc_min_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "rc_max_rate: %d", c->rc_max_rate);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+		  "gop_size: %d\tkeyint_min: %d\tmax_b_frames: %d",
+		  c->gop_size, c->keyint_min, c->max_b_frames);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qmin: %d", c->qmin);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qmax: %d", c->qmax);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qcompress: %f", c->qcompress);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "qblur: %f", c->qblur);
+	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "max_qdiff: %d", c->max_qdiff);
 
-snprintf(buf, sizeof(buf), "bit_rate: %d", c->bit_rate);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-
-snprintf(buf, sizeof(buf), "rc_min_rate: %d", c->rc_min_rate);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "rc_max_rate: %d", c->rc_max_rate);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "gop_size: %d\tkeyint_min: %d\tmax_b_frames: %d", c->gop_size, c->keyint_min, c->max_b_frames);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-
-snprintf(buf, sizeof(buf), "qmin: %d", c->qmin);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qmax: %d", c->qmax);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qcompress: %f", c->qcompress);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "qblur: %f", c->qblur);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-snprintf(buf, sizeof(buf), "max_qdiff: %d", c->max_qdiff);
-__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, buf);
-
-
-	
 	// some formats want stream headers to be separate
 	if(oc->oformat->flags & AVFMT_GLOBALHEADER)
 		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
-	
+
 	return st;
 }
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_initVideo(JNIEnv* env,
-			jobject thiz,
-			jstring outfile, jint width, jint height, jint frame_rate_num, jint frame_rate_den,
-			jint bit_rate, jint gop_size, jint codecId, jint payload_type)
-{
+int
+init_video_tx(const char* outfile, int width, int height, int frame_rate_num, int frame_rate_den,
+			int bit_rate, int gop_size, int codecId, int payload_type) {
 	int ret;
-	
-	const char *pOutFile = NULL;
 	URLContext *urlContext;
-	
+
 	pthread_mutex_lock(&mutex);
 
 #ifndef USE_X264
-	__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "USE_X264 no def");
+	media_log(MEDIA_LOG_INFO, LOG_TAG, "USE_X264 no def");
 	/* TODO: Improve this hack to disable H264 */
 	if (VIDEO_CODECS[codecId] == CODEC_ID_H264) {
-		__android_log_write(ANDROID_LOG_WARN, LOG_TAG, "H264 not supported");
+		media_log(MEDIA_LOG_WARN, LOG_TAG, "H264 not supported");
 		ret = -1;
 		goto end;
 	}
 #endif
 
-	pOutFile = (*env)->GetStringUTFChars(env, outfile, NULL);
-	if (pOutFile == NULL) {
-    		ret = -1; // OutOfMemoryError already thrown
-    		goto end;
-    	}
-	
 	if ( (ret= init_media()) != 0) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Couldn't init media");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't init media");
 		goto end;
 	}
 /*	
@@ -297,13 +268,13 @@ Java_com_kurento_kas_media_tx_MediaTx_initVideo(JNIEnv* env,
 	sws_opts = sws_getContext(16,16,0, 16,16,0, sws_flags, NULL,NULL,NULL);a
 */
 	/* auto detect the output format from the name. default is mp4. */
-	fmt = av_guess_format(NULL, pOutFile, NULL);
+	fmt = av_guess_format(NULL, outfile, NULL);
 	if (!fmt) {
-		__android_log_write(ANDROID_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Could not deduce output format from file extension: using RTP.");
 		fmt = av_guess_format("rtp", NULL, NULL);
 	}
 	if (!fmt) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not find suitable output format");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not find suitable output format");
 		ret = -1;
 		goto end;
 	}
@@ -312,17 +283,17 @@ Java_com_kurento_kas_media_tx_MediaTx_initVideo(JNIEnv* env,
 	/* allocate the output media context */
 	oc = avformat_alloc_context();
 	if (!oc) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Memory error");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Memory error");
 		ret = -2;
 		goto end;
 	}
 	oc->oformat = fmt;
-	snprintf(oc->filename, sizeof(oc->filename), "%s", pOutFile);
-	
+	snprintf(oc->filename, sizeof(oc->filename), "%s", outfile);
+
 	/* add the  video stream using the default format codecs
 	and initialize the codecs */
 	video_st = NULL;
-	
+
 	if (fmt->video_codec != CODEC_ID_NONE) {
 		video_st = add_video_stream(oc, fmt->video_codec, width, height, frame_rate_num, frame_rate_den, bit_rate, gop_size);
 		if(!video_st) {
@@ -334,59 +305,53 @@ Java_com_kurento_kas_media_tx_MediaTx_initVideo(JNIEnv* env,
 	/* set the output parameters (must be done even if no
 	parameters). */
 	if (av_set_parameters(oc, NULL) < 0) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Invalid output format parameters");
 		ret = -4;
 		goto end;
 	}
 	
-	av_dump_format(oc, 0, pOutFile, 1);
-	
-	
-	
+	av_dump_format(oc, 0, outfile, 1);
+
 	/* now that all the parameters are set, we can open the
 	video codec and allocate the necessary encode buffers */
 	if (video_st) {
 		if((ret = open_video(oc, video_st)) < 0) {
-			__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not open video");
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open video");
 			goto end;
 		}
 	}
 
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
-		if ((ret = avio_open(&oc->pb, pOutFile, URL_WRONLY)) < 0) {
-			snprintf(buf, sizeof(buf), "Could not open '%s'", pOutFile);
-			__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+		if ((ret = avio_open(&oc->pb, outfile, URL_WRONLY)) < 0) {
+			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open '%s'", outfile);
 			goto end;
 		}
 	}
-	
+
 	//Free old URLContext
 	if ( (ret=ffurl_close(oc->pb->opaque)) < 0) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not free URLContext");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not free URLContext");
 		goto end;
 	}
-	
+
 	urlContext = get_video_connection(0);
-	if ((ret=rtp_set_remote_url (urlContext, pOutFile)) < 0) {
-		snprintf(buf, sizeof(buf), "Could not open '%s' AVERROR_NOENT:%d", pOutFile, AVERROR_NOENT);
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, buf);
+	if ((ret=rtp_set_remote_url (urlContext, outfile)) < 0) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+			  "Could not open '%s' AVERROR_NOENT:%d", outfile, AVERROR_NOENT);
 		goto end;
 	}
-	
+
 	oc->pb->opaque = urlContext;
-	
-	
+
 	/* write the stream header, if any */
 	av_write_header(oc);
 	
 	RTPMuxContext *rptmc = oc->priv_data;
 	rptmc->payload_type = payload_type;
 
-	(*env)->ReleaseStringUTFChars(env, outfile, pOutFile);
-	
 	ret = 0;
-	
+
 end:
 	pthread_mutex_unlock(&mutex);
 	return ret;
@@ -398,10 +363,18 @@ end:
 ////////////////////////////////////////////////////////////////////////////////////////
 //PUT VIDEO FRAME
 
+static int64_t
+get_pts(int64_t time, AVRational clock_rate)
+{
+	return (time * clock_rate.den) / (clock_rate.num * 1000);
+}
+
 /**
  * see ffmpeg.c
  */
-static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, int srcHeight)
+static int write_video_frame(AVFormatContext *oc, AVStream *st,
+			enum PixelFormat pix_fmt, int srcWidth, int srcHeight,
+			int64_t time)
 {
 	int out_size, ret;
 	AVCodecContext *c;
@@ -410,12 +383,12 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 	c = st->codec;
 	
 	img_convert_ctx = sws_getContext(srcWidth, srcHeight,
-					SRC_PIX_FMT,
+					pix_fmt,
 					c->width, c->height,
 					c->pix_fmt,
 					sws_flags, NULL, NULL, NULL);
 	if (img_convert_ctx == NULL) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Cannot initialize the conversion context");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Cannot initialize the conversion context");
 		return -1;
 	}
 	sws_scale(img_convert_ctx, (const uint8_t* const*)tmp_picture->data, tmp_picture->linesize,
@@ -440,7 +413,7 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 			AVPacket pkt;
 			av_init_packet(&pkt);
 			if (c->coded_frame->pts != AV_NOPTS_VALUE)
-				pkt.pts= av_rescale_q(c->coded_frame->pts, c->time_base, st->time_base);
+				pkt.pts = get_pts(time, st->time_base);
 			if(c->coded_frame->key_frame)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 			pkt.stream_index= st->index;
@@ -455,25 +428,23 @@ static int write_video_frame(AVFormatContext *oc, AVStream *st, int srcWidth, in
 	}
 
 	if (ret < 0)
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Error while writing video frame");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Error while writing video frame");
 
 	return ret;
 }
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_putVideoFrame(JNIEnv* env,
-						jobject thiz,
-						jbyteArray frame, jint width, jint height)
+int
+put_video_frame_tx(enum PixelFormat pix_fmt, uint8_t* frame,
+					int width, int height, int64_t time)
 {
 	int ret;
-	
 	uint8_t *picture2_buf;
 	int size;
-	
+
 	pthread_mutex_lock(&mutex);
 
 	if (!oc) {
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "No video initiated.");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "No video initiated.");
 		ret = -1;
 		goto end;
 	}
@@ -482,25 +453,18 @@ Java_com_kurento_kas_media_tx_MediaTx_putVideoFrame(JNIEnv* env,
 	avpicture_fill((AVPicture *)picture, picture2_buf,
 			video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
 
-	
-	picture_buf = (uint8_t*)((*env)->GetByteArrayElements(env, frame, JNI_FALSE));
 	//Asociamos el frame a tmp_picture por si el pix_fmt es distinto de PIX_FMT_YUV420P
-	avpicture_fill((AVPicture *)tmp_picture, picture_buf,
-			SRC_PIX_FMT, width, height);
-			
-		
-	
-	if (write_video_frame(oc, video_st,  width, height) < 0) {
-		(*env)->ReleaseByteArrayElements(env, frame, (jbyte*)picture_buf, 0);
-		__android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Could not write video frame");
+	avpicture_fill((AVPicture *)tmp_picture, frame, pix_fmt, width, height);
+
+	if (write_video_frame(oc, video_st, pix_fmt, width, height, time) < 0) {
+		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not write video frame");
 		ret = -2;
 		goto end;
 	}
 
-	(*env)->ReleaseByteArrayElements(env, frame, (jbyte*)picture_buf, 0);
 	av_free(picture2_buf);
 	ret = 0;
-	
+
 end:
 	pthread_mutex_unlock(&mutex);
 	return ret;
@@ -522,10 +486,8 @@ static void close_video(AVFormatContext *oc, AVStream *st)
 }
 
 
-jint
-Java_com_kurento_kas_media_tx_MediaTx_finishVideo (JNIEnv* env,
-						jobject thiz)
-{
+int
+finish_video_tx() {
 	int i;
 	/* write the trailer, if any.  the trailer must be written
 	* before you close the CodecContexts open when you wrote the

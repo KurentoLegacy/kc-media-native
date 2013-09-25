@@ -1,9 +1,9 @@
-[submodule "jni/external/ffmpeg"]
-	path = jni/external/ffmpeg
+[submodule "external/ffmpeg"]
+	path = external/ffmpeg
 	url = ../ffmpeg
-[submodule "jni/external/x264"]
-	path = jni/external/x264
-	url = ../x264
-[submodule "jni/external/opencore-amr"]
-	path = jni/external/opencore-amr
+[submodule "external/opencore-amr"]
+	path = external/opencore-amr
 	url = ../opencore-amr
+[submodule "external/x264"]
+	path = external/x264
+	url = ../x264
