@@ -1,7 +1,8 @@
+
 #ifndef __VIDEO_RX_H__
 #define __VIDEO_RX_H__
 
-#include "libavformat/avformat.h"
+#include "MediaRx.h"
 
 typedef struct DecodedFrame {
 	AVFrame* pFrameRGB;
@@ -23,7 +24,20 @@ typedef struct FrameManager {
 	void (*release_decoded_frame)(void);
 } FrameManager;
 
-int start_video_rx(const char* sdp, int maxDelay, FrameManager *frame_manager);
-int stop_video_rx();
+namespace media {
+	class VideoRx : public MediaRx {
+	private:
+		FrameManager *_frame_manager;
+		AVFrame *_pFrame;
+
+	public:
+		VideoRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+						FrameManager *frame_manager);
+		~VideoRx();
+
+	private:
+		void processPacket(AVPacket avpkt, int64_t rx_time);
+	};
+}
 
 #endif /* __VIDEO_RX_H__ */

@@ -4,7 +4,6 @@
 
 static char log_buf[LOG_BUF_SIZE];
 
-
 // Media log level headers, indexed by media log level
 const char * const media_log_level_headers[] = {
 	"-",
@@ -16,8 +15,10 @@ const char * const media_log_level_headers[] = {
 	"FATAL"
 };
 
-static void media_log_default_callback(MediaLogLevel level, const char *tag,
-						const char *fmt, va_list vargs) {
+static void
+media_log_default_callback(MediaLogLevel level, const char *tag,
+						const char *fmt, va_list vargs)
+{
 	int media_log_level =  MEDIA_LOG_UNKNOWN;
 
 	switch(level){
@@ -46,22 +47,28 @@ static void media_log_default_callback(MediaLogLevel level, const char *tag,
 			media_log_level_headers[media_log_level], tag, log_buf);
 }
 
-static void (*media_log_callback)(MediaLogLevel level, const char *tag,
+static void(*media_log_callback)(MediaLogLevel level, const char *tag,
 					const char *fmt, va_list vargs) =
 	media_log_default_callback;
 
-void media_log(MediaLogLevel level, const char *tag, const char *fmt, ...) {
+void
+media_log(MediaLogLevel level, const char *tag, const char *fmt, ...)
+{
 	va_list vl;
 	va_start(vl, fmt);
 	media_vlog(level, tag, fmt, vl);
 	va_end(vl);
 }
 
-void media_vlog(MediaLogLevel level, const char *tag, const char *fmt, va_list vl) {
+void
+media_vlog(MediaLogLevel level, const char *tag, const char *fmt, va_list vl)
+{
 	media_log_callback(level, tag, fmt, vl);
 }
 
-void media_log_set_callback(void (*callback)(MediaLogLevel level, const char *tag,
-						const char *fmt, va_list vargs)) {
+void
+media_log_set_callback(void (*callback)(MediaLogLevel level, const char *tag,
+						const char *fmt, va_list vargs))
+{
 	media_log_callback = callback;
 }

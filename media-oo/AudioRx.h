@@ -1,8 +1,9 @@
+
 #ifndef __AUDIO_RX_H__
 #define __AUDIO_RX_H__
 
-#include <stdint.h>
-#include "libavformat/avformat.h"
+#include "MediaRx.h"
+#include "util/Lock.h"
 
 typedef struct DecodedAudioSamples {
 	uint8_t *samples;
@@ -17,7 +18,19 @@ typedef struct DecodedAudioSamples {
 
 typedef void (*put_audio_samples_rx)(DecodedAudioSamples* decoded_audio_samples);
 
-int start_audio_rx(const char* sdp, int maxDelay, put_audio_samples_rx callback);
-int stop_audio_rx();
+namespace media {
+	class AudioRx : public MediaRx {
+	private:
+		put_audio_samples_rx _callback;
+
+	public:
+		AudioRx(MediaPort* mediaPort, const char* sdp, int max_delay,
+						put_audio_samples_rx callback);
+		~AudioRx();
+
+	private:
+		void processPacket(AVPacket avpkt, int64_t rx_time);
+	};
+}
 
 #endif /* __AUDIO_RX_H__ */

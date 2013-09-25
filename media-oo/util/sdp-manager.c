@@ -1,25 +1,3 @@
-/*
- * Kurento Android Media: Android Media Library based on FFmpeg.
- * Copyright (C) 2011  Tikal Technologies
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 3
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/**
- * 
- * @author Miguel París Díaz
- * 
- */
 
 #include "sdp-manager.h"
 #include "libavformat/rtsp.h"
@@ -27,10 +5,9 @@
 #include "libavformat/internal.h"
 #include "libavformat/rdt.h"
 
-#include "socket-manager.h"
-
 //Based on libavformat/rtsp.c
-static int rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
+static int
+rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
 {
 	RTSPState *rt = s->priv_data;
 	AVStream *st = NULL;
@@ -71,11 +48,13 @@ static int rtsp_open_transport_ctx(AVFormatContext *s, RTSPStream *rtsp_st)
 }
 
 //Based on libavformat/rtsp.c
-static int my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap, const char *sdp_str)
+static int
+my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap,
+				const char *sdp_str, URLContext *urlContext)
 {
 	RTSPState *rt = s->priv_data;
 	RTSPStream *rtsp_st;
-	URLContext *urlContext;
+//	URLContext *urlContext;
 	int size, i, err;
 	char *content;
 	char url[1024];
@@ -94,8 +73,8 @@ static int my_sdp_read_header(AVFormatContext *s, AVFormatParameters *ap, const 
 	/* open each RTP stream */
 	for (i = 0; i < rt->nb_rtsp_streams; i++) {
 		rtsp_st = rt->rtsp_streams[i];
-		urlContext = get_connection_by_local_port(rtsp_st->sdp_port);
-		if (!urlContext)
+//		urlContext = get_connection_by_local_port(rtsp_st->sdp_port);
+		if (rtp_get_local_rtp_port(urlContext) != rtsp_st->sdp_port)
 			return AVERROR(EIO);
 		rtsp_st->rtp_handle = urlContext;
 		if ((err = rtsp_open_transport_ctx(s, rtsp_st)))
@@ -110,7 +89,9 @@ fail:
 }
 
 //Based on libavformat/utils.c
-static int my_av_open_input_stream(AVFormatContext **ic_ptr, const char *sdp_str, AVInputFormat *fmt, AVFormatParameters *ap)
+static int
+my_av_open_input_stream(AVFormatContext **ic_ptr, const char *sdp_str,
+	AVInputFormat *fmt, AVFormatParameters *ap, URLContext *urlContext)
 {
 	int err;
 	AVFormatContext *ic;
@@ -139,12 +120,12 @@ static int my_av_open_input_stream(AVFormatContext **ic_ptr, const char *sdp_str
 		if (!ic->priv_data) {
 			err = AVERROR(ENOMEM);
 			goto fail;
- 		}
+		}
 	} else {
 		ic->priv_data = NULL;
 	}
 
-	err = my_sdp_read_header(ic, ap, sdp_str);
+	err = my_sdp_read_header(ic, ap, sdp_str, urlContext);
 	if (err < 0)
 		goto fail;
 
@@ -174,7 +155,9 @@ fail:
 }
 
 //Based on libavformat/utils.c
-int av_open_input_sdp(AVFormatContext **ic_ptr, const char *sdp_str, AVFormatParameters *ap)
+int
+av_open_input_sdp(AVFormatContext **ic_ptr, const char *sdp_str,
+				AVFormatParameters *ap, URLContext *urlContext)
 {
 	int err;
 	AVInputFormat *fmt = NULL;
@@ -186,7 +169,7 @@ int av_open_input_sdp(AVFormatContext **ic_ptr, const char *sdp_str, AVFormatPar
 		goto fail;
 	}
 
-	err = my_av_open_input_stream(ic_ptr, sdp_str, fmt, ap);
+	err = my_av_open_input_stream(ic_ptr, sdp_str, fmt, ap, urlContext);
 	if (err)
 		goto fail;
 
@@ -197,5 +180,3 @@ fail:
 	*ic_ptr = NULL;
 	return err;
 }
-
-
