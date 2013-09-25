@@ -32,13 +32,13 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 
 	this->_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Could not deduce output "
-					"format from file extension: using RTP.");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+			"Could not deduce output format from file extension: using RTP.");
 		_fmt = av_guess_format("rtp", NULL, NULL);
 	}
 	if (!_fmt) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not find suitable "
-								"output format");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Could not find suitable output format");
 		ret = -1;
 		goto end;
 	}
@@ -49,7 +49,8 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 	/* allocate the output media context */
 	_oc = avformat_alloc_context();
 	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Memory error: Could not alloc context");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Memory error: Could not alloc context");
 		ret = -2;
 		goto end;
 	}
@@ -125,8 +126,6 @@ AudioTx::AudioTx(const char* outfile, enum CodecID codec_id,
 end:
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
 	_mutex = new Lock();
-	//return ret;
-	;
 }
 
 AudioTx::~AudioTx()
@@ -150,7 +149,6 @@ AudioTx::~AudioTx()
 			av_freep(&_oc->streams[i]->codec);
 			av_freep(&_oc->streams[i]);
 		}
-		//close_context(_oc);
 		_mediaPort->closeContext(_oc);
 		MediaPortManager::releaseMediaPort(_mediaPort);
 		_oc = NULL;
@@ -233,15 +231,15 @@ AudioTx::addAudioStream(AVFormatContext *oc, enum CodecID codec_id,
 	c->codec_type = AVMEDIA_TYPE_AUDIO;
 
 	/* put sample parameters */
-	c->bit_rate = bit_rate;//AMR:12200;//MP2:64000
-	c->sample_rate = sample_rate;//AMR:8000;//MP2:44100;
+	c->bit_rate = bit_rate;
+	c->sample_rate = sample_rate;
 	c->channels = 1;
-	c->sample_fmt = SAMPLE_FMT_S16;//AV_SAMPLE_FMT_S16;
+	c->sample_fmt = SAMPLE_FMT_S16;
 
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "bit_rate: %d", c->bit_rate);
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "sample_rate: %d", c->sample_rate);
 
-	// some formats want stream headers to be separate
+	/* some formats want stream headers to be separate */
 	if(oc->oformat->flags & AVFMT_GLOBALHEADER)
 		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
@@ -257,14 +255,12 @@ AudioTx::openAudio()
 
 	c = _audio_st->codec;
 
-	/* find the audio encoder */
 	codec = avcodec_find_encoder(c->codec_id);
 	if (!codec) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Codec not found");
 		return -1;
 	}
 
-	/* open the codec */
 	if ((ret = avcodec_open(c, codec)) < 0) {
 		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not open codec");
 		return ret;

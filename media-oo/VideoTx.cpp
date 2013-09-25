@@ -44,13 +44,13 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 
 	_fmt = av_guess_format(NULL, outfile, NULL);
 	if (!_fmt) {
-		media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Could not deduce output "
-					"format from file extension: using RTP.");
+		media_log(MEDIA_LOG_DEBUG, LOG_TAG,
+			"Could not deduce output format from file extension: using RTP.");
 		_fmt = av_guess_format("rtp", NULL, NULL);
 	}
 	if (!_fmt) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Could not find suitable "
-								"output format");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Could not find suitable output format");
 		ret = -1;
 		goto end;
 	}
@@ -60,7 +60,8 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 	/* allocate the output media context */
 	_oc = avformat_alloc_context();
 	if (!_oc) {
-		media_log(MEDIA_LOG_ERROR, LOG_TAG, "Memory error");
+		media_log(MEDIA_LOG_ERROR, LOG_TAG,
+					"Memory error: Could not alloc context");
 		ret = -2;
 		goto end;
 	}
@@ -134,8 +135,6 @@ VideoTx::VideoTx(const char* outfile, int width, int height,
 end:
 	media_log(MEDIA_LOG_DEBUG, LOG_TAG, "Constructor ret: %d", ret);
 	_mutex = new Lock();
-	//return ret;
-	;
 }
 
 VideoTx::~VideoTx()
@@ -162,7 +161,6 @@ VideoTx::~VideoTx()
 			av_freep(&_oc->streams[i]->codec);
 			av_freep(&_oc->streams[i]);
 		}
-		//close_context(_oc);
 		_mediaPort->closeContext(_oc);
 		MediaPortManager::releaseMediaPort(_mediaPort);
 		_oc = NULL;

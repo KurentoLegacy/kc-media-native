@@ -68,16 +68,19 @@ MediaRx::openFormatContext(AVFormatContext **c)
 		ap->prealloced_context = 1;
 
 		// Open sdp
-		if ((ret = av_open_input_sdp(&pFormatCtx, _sdp, ap, urlContext)) != 0 ) {
+		ret = av_open_input_sdp(&pFormatCtx, _sdp, ap, urlContext);
+		if (ret != 0 ) {
 			av_strerror(ret, buf, sizeof(buf));
-			media_log(MEDIA_LOG_ERROR, LOG_TAG, "Couldn't process sdp: %s", buf);
+			media_log(MEDIA_LOG_ERROR, LOG_TAG,
+						"Couldn't process sdp: %s", buf);
 			return ret;
 		}
 
 		// Retrieve stream information
 		if ((ret = av_find_stream_info(pFormatCtx)) < 0) {
 			av_strerror(ret, buf, sizeof(buf));
-			media_log(MEDIA_LOG_WARN, LOG_TAG, "Couldn't find stream information: %s", buf);
+			media_log(MEDIA_LOG_WARN, LOG_TAG,
+				"Couldn't find stream information: %s", buf);
 			_mediaPort->closeContext(pFormatCtx);
 
 		} else
@@ -104,7 +107,6 @@ MediaRx::start()
 	this->setReceive(true);
 	if ((ret = MediaRx::openFormatContext(&_pFormatCtx)) < 0)
 		goto end;
-	media_log(MEDIA_LOG_INFO, LOG_TAG, "max_delay: %d ms", _pFormatCtx->max_delay/1000);
 
 	// Find the first stream
 	_stream = -1;
